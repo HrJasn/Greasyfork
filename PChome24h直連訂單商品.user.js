@@ -4,9 +4,9 @@
 // @description  於訂單內點擊商品ID數次可開啟原商品頁面.
 // @copyright    2019, HrJasn (https://greasyfork.org/zh-TW/users/142344-jasn-hr)
 // @license      GPL-3.0-or-later
-// @version      1.1.1
+// @version      1.1.2
 // @icon         https://www.google.com/s2/favicons?domain=ecvip.pchome.com.tw
-// @include		 http*://ecvip.pchome.com.tw/*
+// @include		 http*://ecvip.pchome.com.tw/web/order/*
 // @exclude		 http*://www.pchome.com.tw/*
 // @grant        none
 // ==/UserScript==
