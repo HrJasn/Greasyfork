@@ -7,7 +7,7 @@
 // @homepageURL https://openuserjs.org/users/a29527806
 // @supportURL https://openuserjs.org/users/a29527806
 // @contributionURL https://openuserjs.org/users/a29527806
-// @version 1.1.1
+// @version 1.1.2
 // @updateURL https://openuserjs.org/meta/a29527806/YouTube_轉換觀看人數為中文量詞單位.meta.js
 // @downloadURL https://openuserjs.org/install/a29527806/YouTube_轉換觀看人數為中文量詞單位.user.js
 // @namespace https://openuserjs.org/users/a29527806
@@ -51,11 +51,10 @@ window.addEventListener('load', () =>{
         addedNodes.forEach((addedNode)=>{
             if(addedNode.querySelectorAll){
                 addedNode.querySelectorAll('#primary .view-count').forEach((singleRow)=>{
-					console.log(singleRow);
                     const viewCount = singleRow.innerText.match(/觀看次數：([0-9,]+)次/);
                     if(viewCount){
                         const viewCountNumber = viewCount[1].replace(/,/g,'');
-						document.querySelector('#primary .view-count').innerHTML = '觀看次數：' + transferToChineseNumber(viewCountNumber) + '次';
+						singleRow.innerHTML = '觀看次數：' + transferToChineseNumber(viewCountNumber) + '次';
                     }
                 });
             }
