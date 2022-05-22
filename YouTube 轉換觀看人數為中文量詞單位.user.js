@@ -1,25 +1,20 @@
 // ==UserScript==
 
 // @name YouTube 轉換觀看人數為中文量詞單位
-// @copyright 2019, HrJasn (https://openuserjs.org/users/a29527806)
+// @copyright 2022, HrJasn (https://github.com/HrJasn/)
 // @license GPL-3.0-or-later
 // @icon
-// @homepageURL https://openuserjs.org/users/a29527806
-// @supportURL https://openuserjs.org/users/a29527806
-// @contributionURL https://openuserjs.org/users/a29527806
-// @version 1.1.2
-// @updateURL https://openuserjs.org/meta/a29527806/YouTube_轉換觀看人數為中文量詞單位.meta.js
-// @downloadURL https://openuserjs.org/install/a29527806/YouTube_轉換觀看人數為中文量詞單位.user.js
-// @namespace https://openuserjs.org/users/a29527806
+// @homepageURL https://github.com/HrJasn/
+// @supportURL https://github.com/HrJasn/
+// @contributionURL https://github.com/HrJasn/
+// @version 1.1.3
+// @downloadURL https://github.com/HrJasn/Greasyfork/raw/main/YouTube%20%E8%BD%89%E6%8F%9B%E8%A7%80%E7%9C%8B%E4%BA%BA%E6%95%B8%E7%82%BA%E4%B8%AD%E6%96%87%E9%87%8F%E8%A9%9E%E5%96%AE%E4%BD%8D.user.js
+// @namespace https://github.com/HrJasn/
 // @grant		  none
 // @include		http*://www.youtube.com/*
 // @exclude		http*://www.google.com/*
 
 // ==/UserScript==
-
-// ==OpenUserJS==
-// @author a29527806
-// ==/OpenUserJS==
 
 
 console.log('YouTube 轉換觀看人數為中文量詞單位');
