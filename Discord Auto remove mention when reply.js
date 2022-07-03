@@ -10,7 +10,7 @@
 // @description:ja       Discord 返信時にメンションを自動的に削除。
 // @copyright            2022, HrJasn (https://greasyfork.org/zh-TW/users/142344-jasn-hr)
 // @license              GPL-3.0-or-later
-// @version              1.1
+// @version              1.2
 // @icon                 https://www.google.com/s2/favicons?domain=discord.com
 // @include              http*://discord.com/*
 // @exclude              http*://www.google.com/*
