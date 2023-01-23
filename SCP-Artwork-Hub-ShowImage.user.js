@@ -10,7 +10,7 @@
 // @description:ja     SCP Arts Centerの投稿リンクの上にマウスを移動して、画像を表示します。
 // @copyright    2022, HrJasn (https://greasyfork.org/zh-TW/users/142344-jasn-hr)
 // @license      GPL-3.0-or-later
-// @version      1.3
+// @version      1.3.1
 // @icon         https://www.google.com/s2/favicons?domain=wikidot.com
 // @include      http*://*scp*.wikidot.com/*art*
 // @include      http://ko.scp-wiki.net/scp-artwork-hub-ko
@@ -40,7 +40,7 @@ window.onload = function(){
             let resDom = parser.parseFromString(resText,"text/html");
             let resDomBody = resDom.body;
             let ArtworkImage = resDomBody.querySelector('#page-content div.image-container img') ||
-                resDomBody.querySelector('#page-content img.image:not([src="http://scp-jp.wikidot.com/local--files/nav:side/blank.png"]):not([src="http://scp-idn.wdfiles.com/local--files/shaun159-pixel-artpage/ball.jpg"])') ||
+                [...resDomBody.querySelectorAll('#page-content img.image')].at(-1) ||
                 resDomBody.querySelector('#page-content img.fillpg');
             let ArtworkImageSrc = ArtworkImage.src;
             ArtImageWindow.src = ArtworkImageSrc;
