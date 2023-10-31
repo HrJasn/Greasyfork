@@ -10,10 +10,10 @@
 // @description:ja     通知から後でプレイリストを視聴するビデオに参加するボタンを追加します。
 // @copyright          2023, HrJasn (https://greasyfork.org/zh-TW/users/142344-jasn-hr)
 // @license            MIT
-// @icon
+// @icon               https://www.google.com/s2/favicons?domain=www.youtube.com
 // @homepageURL        https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @supportURL         https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @version            1.2
+// @version            1.3
 // @namespace          https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @grant              none
 // @match              http*://www.youtube.com/*
@@ -23,7 +23,8 @@
 
 (() => {
     'use strict';
-    window.onload = () => {
+    window.addEventListener('load',() => {
+        console.log('YouTube Button As Add Notify Video To WL is loading.');
         let YBAANVTWobserver;
         YBAANVTWobserver = new MutationObserver( (mutations) => {
             mutations.forEach((adNds)=>{
@@ -41,6 +42,7 @@
                                 </button>`);
                             let awlbe = ynrbe.parentNode.querySelector('button[name="addtowl"]');
                             if(awlbe){
+                                console.log('YouTube Button As Add Notify Video To WL is loaded.');
                                 awlbe.addEventListener('click', async (evnt)=>{
                                     evnt.preventDefault();
                                     evnt.stopPropagation();
@@ -71,6 +73,41 @@
                                             evne.querySelector('svg').innerHTML = '<path d="M14.1 27.2l7.1 7.2 16.7-16.8"></path>';
                                         };
                                     };
+                                    async function getSApiSidHash(SAPISID, origin) {
+                                        function sha1(str) {
+                                            return window.crypto.subtle
+                                                .digest("SHA-1", new TextEncoder().encode(str))
+                                                .then((buf) => {
+                                                return Array.prototype.map
+                                                    .call(new Uint8Array(buf), (x) => ("00" + x.toString(16)).slice(-2))
+                                                    .join("")
+                                            });
+                                        };
+                                        const TIMESTAMP_MS = Date.now();
+                                        const digest = await sha1(`${TIMESTAMP_MS} ${SAPISID} ${origin}`);
+                                        return `${TIMESTAMP_MS}_${digest}`;
+                                    };
+                                    async function fetchYTAddVideoAPI(actions,playlistId){
+                                        return fetch("https://www.youtube.com/youtubei/v1/browse/edit_playlist?key=" + ytcfg.data_.INNERTUBE_API_KEY + "&prettyPrint=false", {
+                                            "headers": {
+                                                "accept": "*/*",
+                                                "authorization": "SAPISIDHASH " + await getSApiSidHash(document.cookie.split("SAPISID=")[1].split("; ")[0], window.origin),
+                                                "content-type": "application/json"
+                                            },
+                                            "body": JSON.stringify({
+                                                "context": {
+                                                    "client": {
+                                                        clientName: "WEB",
+                                                        clientVersion: ytcfg.data_.INNERTUBE_CLIENT_VERSION
+                                                    }
+                                                },
+                                                "actions": actions,
+                                                "playlistId": "WL"
+                                            }),
+                                            "method": "POST"
+                                        });
+                                    };
+
                                 });
                             };
                         };
@@ -78,40 +115,6 @@
                 });
             });
         });
-        async function getSApiSidHash(SAPISID, origin) {
-            function sha1(str) {
-                return window.crypto.subtle
-                    .digest("SHA-1", new TextEncoder().encode(str))
-                    .then((buf) => {
-                    return Array.prototype.map
-                        .call(new Uint8Array(buf), (x) => ("00" + x.toString(16)).slice(-2))
-                        .join("")
-                });
-            };
-            const TIMESTAMP_MS = Date.now();
-            const digest = await sha1(`${TIMESTAMP_MS} ${SAPISID} ${origin}`);
-            return `${TIMESTAMP_MS}_${digest}`;
-        };
-        async function fetchYTAddVideoAPI(actions,playlistId){
-            return fetch("https://www.youtube.com/youtubei/v1/browse/edit_playlist?key=" + ytcfg.data_.INNERTUBE_API_KEY + "&prettyPrint=false", {
-                "headers": {
-                    "accept": "*/*",
-                    "authorization": "SAPISIDHASH " + await getSApiSidHash(document.cookie.split("SAPISID=")[1].split("; ")[0], window.origin),
-                    "content-type": "application/json"
-                },
-                "body": JSON.stringify({
-                    "context": {
-                        "client": {
-                            clientName: "WEB",
-                            clientVersion: ytcfg.data_.INNERTUBE_CLIENT_VERSION
-                        }
-                    },
-                    "actions": actions,
-                    "playlistId": "WL"
-                }),
-                "method": "POST"
-            });
-        };
         YBAANVTWobserver.observe(document, {attributes:true, childList:true, subtree:true});
-    };
+    });
 })();

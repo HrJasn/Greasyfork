@@ -8,23 +8,23 @@
 // @description:zh-TW  使用官方API以播放時間長度排序清單
 // @description:zh-CN  使用官方API以播放时间长度排序清单
 // @description:ja     再生時間の長さによるプレイリストの並べ替えには、内部 API を使用します。
-// @copyright 2023, HrJasn (https://greasyfork.org/zh-TW/users/142344-jasn-hr)
-// @license MIT
-// @icon
-// @homepageURL https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @supportURL https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @contributionURL https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @version 1.2
-// @namespace https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @grant          none
-// @match        http*://www.youtube.com/*
-// @exclude        http*://www.google.com/*
+// @copyright          2023, HrJasn (https://greasyfork.org/zh-TW/users/142344-jasn-hr)
+// @license            MIT
+// @icon               https://www.google.com/s2/favicons?domain=www.youtube.com
+// @homepageURL        https://greasyfork.org/zh-TW/users/142344-jasn-hr
+// @supportURL         https://greasyfork.org/zh-TW/users/142344-jasn-hr
+// @version            1.3
+// @namespace          https://greasyfork.org/zh-TW/users/142344-jasn-hr
+// @grant              none
+// @match              http*://www.youtube.com/*
+// @exclude            http*://www.google.com/*
 
 // ==/UserScript==
 
 (() => {
     'use strict';
-    window.onload = () => {
+    window.addEventListener('load',() => {
+        console.log("YouTube sort playlists by play time length is loading.");
         let setCookie = (name,value,days) => {
             let expires = "";
             if (days) {
@@ -63,7 +63,6 @@
         observerYSPBPTL = new MutationObserver( (mutations) => {
             let ypvlse = null;
             if( (oldLH !== window.location.href) && (ypvlse = document.querySelector('div#icon-label')) ){
-                console.log("YouTube sort playlists by play time length is loading.");
                 oldLH = window.location.href;
                 let gck = JSON.parse(getCookie('CustomSortStatus'));
                 let ypvlmtArr = {
@@ -324,7 +323,7 @@
                         };
                         window.location.href = window.location.href;
                     };
-                }
+                };
                 let ypvlmes = [[...ypvlse.parentNode.children].find(cn => cn.innerText.match(ypvlmt))];
                 console.log(ypvlmes);
                 if( (ypvlmes) && (ypvlmes.length !== 0) ){
@@ -354,8 +353,9 @@
                 } else {
                     setCookie('CustomSortStatus',JSON.stringify({'LastAct':'Nothing'}),null);
                 };
+                console.log("YouTube sort playlists by play time length is loaded.");
             };
         });
         observerYSPBPTL.observe(document, {attributes:true, childList:true, subtree:true});
-    };
+    });
 })();
