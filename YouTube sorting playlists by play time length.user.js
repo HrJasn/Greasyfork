@@ -14,7 +14,7 @@
 // @homepageURL https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @supportURL https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @contributionURL https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @version 1.1
+// @version 1.2
 // @namespace https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @grant          none
 // @match        http*://www.youtube.com/*
@@ -59,8 +59,8 @@
             };
         };
         let oldLH = '';
-        let MutationObserverTimer, observer;
-        observer = new MutationObserver( (mutations) => {
+        let MutationObserverTimerYSPBPTL, observerYSPBPTL;
+        observerYSPBPTL = new MutationObserver( (mutations) => {
             let ypvlse = null;
             if( (oldLH !== window.location.href) && (ypvlse = document.querySelector('div#icon-label')) ){
                 console.log("YouTube sort playlists by play time length is loading.");
@@ -73,7 +73,7 @@
                     'ja': 'プレイ時間'
                 };
                 let ypvlmt = ypvlmtArr[(navigator.userLanguage || navigator.language || navigator.browserLanguage || navigator.systemLanguage)] || ypvlmtArr.en;
-                let MutationObserverTimer3;
+                let MutationObserverTimerYSPBPTL3;
                 let ypvlmevntfn = (evnt) => {
                     evnt.preventDefault();
                     evnt.stopPropagation();
@@ -148,10 +148,10 @@
                         }
                         evnt.target.innerHTML = orgetih;
                         console.log(ypvrearr);
-                        if(MutationObserverTimer3){
-                            clearTimeout(MutationObserverTimer3);
+                        if(MutationObserverTimerYSPBPTL3){
+                            clearTimeout(MutationObserverTimerYSPBPTL3);
                         };
-                        MutationObserverTimer3 = setTimeout(() => {
+                        MutationObserverTimerYSPBPTL3 = setTimeout(() => {
                             if(ypvrearr.length != 0){
                                 let ot = document.title, ftd = 0.5;
                                 async function getSApiSidHash(SAPISID, origin) {
@@ -356,6 +356,6 @@
                 };
             };
         });
-        observer.observe(document, {attributes:true, childList:true, subtree:true});
+        observerYSPBPTL.observe(document, {attributes:true, childList:true, subtree:true});
     };
 })();
