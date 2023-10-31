@@ -13,7 +13,7 @@
 // @icon
 // @homepageURL        https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @supportURL         https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @version            1.0
+// @version            1.1
 // @namespace          https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @grant              none
 // @match              http*://www.youtube.com/*
@@ -24,8 +24,8 @@
 (() => {
     'use strict';
     window.onload = () => {
-        let MutationObserverTimer, observer;
-        observer = new MutationObserver( (mutations) => {
+        let YBAANVTWobserver;
+        YBAANVTWobserver = new MutationObserver( (mutations) => {
             mutations.forEach((adNds)=>{
                 adNds.addedNodes.forEach((adNde)=>{
                     console.log(adNde);
@@ -113,6 +113,6 @@
                 "method": "POST"
             });
         };
-        observer.observe(document, {attributes:true, childList:true, subtree:true});
+        YBAANVTWobserver.observe(document, {attributes:true, childList:true, subtree:true});
     };
 })();
