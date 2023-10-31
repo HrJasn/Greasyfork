@@ -13,7 +13,7 @@
 // @icon
 // @homepageURL        https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @supportURL         https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @version            1.1
+// @version            1.2
 // @namespace          https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @grant              none
 // @match              http*://www.youtube.com/*
@@ -28,7 +28,6 @@
         YBAANVTWobserver = new MutationObserver( (mutations) => {
             mutations.forEach((adNds)=>{
                 adNds.addedNodes.forEach((adNde)=>{
-                    console.log(adNde);
                     if( (adNde) && (adNde.querySelector) && (adNde.querySelector('ytd-notification-renderer button[aria-label]')) ){
                         let ynrbe = adNde.querySelector('ytd-notification-renderer button[aria-label]');
                         if( (ynrbe) && (ynrbe.parentNode) && !(ynrbe.parentNode.querySelector('button[name="addtowl"]')) ){
