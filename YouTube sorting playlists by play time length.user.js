@@ -13,7 +13,7 @@
 // @icon               https://www.google.com/s2/favicons?domain=www.youtube.com
 // @homepageURL        https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @supportURL         https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @version            1.3
+// @version            1.4
 // @namespace          https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @grant              none
 // @match              http*://www.youtube.com/*
@@ -72,35 +72,42 @@
                     'ja': 'プレイ時間'
                 };
                 let ypvlmt = ypvlmtArr[(navigator.userLanguage || navigator.language || navigator.browserLanguage || navigator.systemLanguage)] || ypvlmtArr.en;
+                function searchObj(path, obj, target) {
+                    for (let k in obj) {
+                        if (obj.hasOwnProperty(k)){
+                            if(obj[k] === target){
+                                return path + "['" + k + "']";
+                            } else if (typeof obj[k] === 'object') {
+                                let result = searchObj(path + "['" + k + "']", obj[k], target);
+                                if (result){
+                                    return result;
+                                };
+                            };
+                        };
+                    };
+                    return false;
+                };
+                function getObjPathParent(srcPath){
+                    let tgPath = null;
+                    if( (srcPath) && (srcPath.replace) ){tgPath = srcPath.replace(/\[[^\[\]]+\]$/,'')};
+                    return tgPath;
+                };
+                let getFndPath = getObjPathParent(getObjPathParent(getObjPathParent(searchObj("ytInitialData",ytInitialData,document.querySelector('ytd-playlist-video-list-renderer div#contents ytd-playlist-video-renderer a[href *= "/watch?v="]').href.match(/v=([^\=\&]+)&?/)[1]))));
+                let ypvricarr = [];
                 let MutationObserverTimerYSPBPTL3;
                 let ypvlmevntfn = (evnt) => {
                     evnt.preventDefault();
                     evnt.stopPropagation();
                     evnt.stopImmediatePropagation();
                     console.log(evnt);
-                    function searchObj(path, obj, target) {
-                        for (let k in obj) {
-                            if (obj.hasOwnProperty(k)){
-                                if(obj[k] === target){
-                                    return path + "['" + k + "']";
-                                } else if (typeof obj[k] === 'object') {
-                                    let result = searchObj(path + "['" + k + "']", obj[k], target);
-                                    if (result){
-                                        return result;
-                                    };
-                                };
-                            };
-                        };
-                        return false;
+                    getFndPath = getObjPathParent(getObjPathParent(getObjPathParent(searchObj("ytInitialData",ytInitialData,document.querySelector('ytd-playlist-video-list-renderer div#contents ytd-playlist-video-renderer a[href *= "/watch?v="]').href.match(/v=([^\=\&]+)&?/)[1]))));
+                    ypvricarr = [];
+                    try{
+                        ypvricarr = [...eval('(' + getFndPath + ')')];
+                    }catch(err){
+                        console.log(err);
                     };
-                    function getObjPathParent(srcPath){
-                        let tgPath = null;
-                        if( (srcPath) && (srcPath.replace) ){tgPath = srcPath.replace(/\[[^\[\]]+\]$/,'')};
-                        return tgPath;
-                    };
-                    let getFndPath = getObjPathParent(getObjPathParent(getObjPathParent(searchObj("ytInitialData",ytInitialData,document.querySelector('ytd-playlist-video-list-renderer div#contents ytd-playlist-video-renderer a[href *= "/watch?v="]').href.match(/v=([^\=\&]+)&?/)[1]))));
-                    if(getFndPath) {
-                        let ypvricarr = [...eval('(' + getFndPath + ')')];
+                    if(ypvricarr.length != 0){
                         let ypvrearr = [];
                         let orgetih = evnt.target.innerHTML;
                         if(orgetih == ('　' + ypvlmt + '▲')){
@@ -352,6 +359,19 @@
                     };
                 } else {
                     setCookie('CustomSortStatus',JSON.stringify({'LastAct':'Nothing'}),null);
+                };
+                try{
+                    ypvricarr = [...eval('(' + getFndPath + ')')];
+                }catch(err){
+                    let nfrstrArr = {
+                        'en':'click to fresh page one time.',
+                        'zh-TW':'按下以重新整理一次',
+                        'zh-CN':'按下以重新整理一次',
+                        'ja': '押してページを 1 回更新します'
+                    };
+                    let nfrst = nfrstrArr[(navigator.userLanguage || navigator.language || navigator.browserLanguage || navigator.systemLanguage)] || nfrstrArr.en;
+                    ypvlme.innerHTML = ('　' + ypvlmt + ' ( ' + nfrst +' ) ');
+                    console.log(err);
                 };
                 console.log("YouTube sort playlists by play time length is loaded.");
             };
