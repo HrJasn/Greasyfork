@@ -13,7 +13,7 @@
 // @icon               https://www.google.com/s2/favicons?domain=www.youtube.com
 // @homepageURL        https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @supportURL         https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @version            1.3
+// @version            1.4
 // @namespace          https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @grant              none
 // @match              http*://www.youtube.com/*
@@ -49,29 +49,48 @@
                                     evnt.stopImmediatePropagation();
                                     let evne = evnt.target;
                                     console.log(evne);
-                                    let addedVideoId = null;
+                                    let tgVideoId = null;
                                     try{
-                                        addedVideoId = evne.parentNode.parentNode.parentNode.parentNode.parentNode.querySelector('a[href *= "/watch?v="]').href.match(/watch\?v=([^=&\?]+)&?/)[1];
+                                        tgVideoId = evne.parentNode.parentNode.parentNode.parentNode.parentNode.querySelector('a[href *= "/watch?v="]').href.match(/watch\?v=([^=&\?]+)&?/)[1];
                                     }catch(err){
                                         try{
-                                            addedVideoId = evne.parentNode.parentNode.parentNode.parentNode.parentNode.querySelector('a[href *= "/shorts/"]').href.match(/shorts\/([^\/\?]+)\/?/)[1];
+                                            tgVideoId = evne.parentNode.parentNode.parentNode.parentNode.parentNode.querySelector('a[href *= "/shorts/"]').href.match(/shorts\/([^\/\?]+)\/?/)[1];
                                         }catch(err2){
                                             console.log(err2);
                                         };
                                         console.log(err);
                                     };
-                                    if(addedVideoId){
-                                        let ytactsjson = [{
-                                            "addedVideoId": addedVideoId,
-                                            "action": "ACTION_ADD_VIDEO"
-                                        }];
-                                        let res = await fetchYTAddVideoAPI(ytactsjson,'WL');
-                                        console.log(res);
-                                        if(res.status === 200){
-                                            evne.querySelector('svg').innerHTML = '<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zM9.8 17.3l-4.2-4.1L7 11.8l2.8 2.7L17 7.4l1.4 1.4-8.6 8.5z"></path>';
-                                        } else {
-                                            evne.querySelector('svg').innerHTML = '<path d="M14.1 27.2l7.1 7.2 16.7-16.8"></path>';
+                                    if(tgVideoId){
+                                        let ytactsjson = null;
+                                        let evnesp = evne.querySelector('svg path');
+                                        if(evnesp.getAttribute('d') == 'M14.97 16.95 10 13.87V7h2v5.76l4.03 2.49-1.06 1.7zM12 3c-4.96 0-9 4.04-9 9s4.04 9 9 9 9-4.04 9-9-4.04-9-9-9m0-1c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z'){
+                                            ytactsjson = [{
+                                                "action": "ACTION_ADD_VIDEO",
+                                                "addedVideoId": tgVideoId
+                                            }];
+                                        } else if(evnesp.getAttribute('d') == 'M11 17H9V8h2v9zm4-9h-2v9h2V8zm4-4v1h-1v16H6V5H5V4h4V3h6v1h4zm-2 1H7v15h10V5z'){
+                                            ytactsjson = [{
+                                                "action": "ACTION_REMOVE_VIDEO_BY_VIDEO_ID",
+                                                "removedVideoId": tgVideoId
+                                            }];
                                         };
+                                        if(ytactsjson){
+                                            let res = await fetchYTAddVideoAPI(ytactsjson,'WL');
+                                            console.log(res);
+                                            if(res.status === 200){
+                                                evnesp.setAttribute('d', 'M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zM9.8 17.3l-4.2-4.1L7 11.8l2.8 2.7L17 7.4l1.4 1.4-8.6 8.5z');
+                                                if(ytactsjson[0].action == "ACTION_ADD_VIDEO"){
+                                                    evnesp.setAttribute('d', 'M11 17H9V8h2v9zm4-9h-2v9h2V8zm4-4v1h-1v16H6V5H5V4h4V3h6v1h4zm-2 1H7v15h10V5z');
+                                                } else if(ytactsjson[0].action == "ACTION_REMOVE_VIDEO_BY_VIDEO_ID"){
+                                                    evnesp.setAttribute('d', 'M14.97 16.95 10 13.87V7h2v5.76l4.03 2.49-1.06 1.7zM12 3c-4.96 0-9 4.04-9 9s4.04 9 9 9 9-4.04 9-9-4.04-9-9-9m0-1c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z');
+                                                };
+                                            } else {
+                                                evnesp.setAttribute('d', 'M 12 2 C 6.5 2 2 6.5 2 12 s 4.5 10 10 10 s 10 -4.5 10 -10 S 17.5 2 12 2 z M 9 12 l -4 -4 L 8 5 l 4 4 L 16 5 l 3 3 l -4 4 L 19 16 L 16 19 L 12 15 L 8 19 L 5 16 z');
+                                                setTimeout(()=>{
+                                                    evnesp.setAttribute('d', 'M14.97 16.95 10 13.87V7h2v5.76l4.03 2.49-1.06 1.7zM12 3c-4.96 0-9 4.04-9 9s4.04 9 9 9 9-4.04 9-9-4.04-9-9-9m0-1c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z');
+                                                },3000);
+                                            };
+                                        }
                                     };
                                     async function getSApiSidHash(SAPISID, origin) {
                                         function sha1(str) {
