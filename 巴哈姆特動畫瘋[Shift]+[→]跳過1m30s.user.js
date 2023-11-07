@@ -7,7 +7,7 @@
 // @icon               https://www.google.com/s2/favicons?domain=ani.gamer.com.tw
 // @homepageURL        https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @supportURL         https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @version            1.0
+// @version            1.1
 // @namespace          https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @grant              none
 // @match              http*://ani.gamer.com.tw/animeVideo.php?sn=*
@@ -16,21 +16,23 @@
 // ==/UserScript==
 
 (() => {
-    window.addEventListener('load',() => {
-        let observer;
-        observer = new MutationObserver( (mutations) => {
-            mutations.forEach((adNds)=>{
-                adNds.addedNodes.forEach((adNde)=>{
-                    if( (adNde) && (adNde.querySelector) && (adNde.querySelector('video')) ){
-                        console.log('巴哈姆特動畫瘋快捷鍵跳過1m30s已讀入。');
-                        observer.disconnect();
-                        const videoe = document.querySelector('video');
-                        const videopne = videoe.parentNode;
-                        let keyDownHis = {};
+    let observer;
+    observer = new MutationObserver( (mutations) => {
+        mutations.forEach((adNds)=>{
+            adNds.addedNodes.forEach((adNde)=>{
+                if( (adNde) && (adNde.querySelector) && (adNde.querySelector('video')) ){
+                    console.log('巴哈姆特動畫瘋快捷鍵跳過1m30s已讀入。');
+                    observer.disconnect();
+                    const videoe = document.querySelector('video');
+                    const videopne = videoe.parentNode;
+                    let keyDownHis = {};
+                    if (videopne.getAttribute('1m30sEvntSet') !== true) {
                         videopne.addEventListener('keydown', (evnt) => {
+                            evnt.target.setAttribute('1m30sEvntSet', true);
                             keyDownHis[evnt.key] = true;
                         });
                         videopne.addEventListener('keyup', (evnt) => {
+                            evnt.target.setAttribute('1m30sEvntSet', true);
                             switch(true){
                                 case ( (keyDownHis.Shift) && (keyDownHis.ArrowRight) ) : {
                                     let nt = evnt.target.querySelector('video').currentTime + 85;
@@ -66,9 +68,9 @@
                             keyDownHis = {};
                         });
                     };
-                });
+                };
             });
         });
-        observer.observe(document, {attributes:true, childList:true, subtree:true});
     });
+    observer.observe(document, {attributes:true, childList:true, subtree:true});
 })();
