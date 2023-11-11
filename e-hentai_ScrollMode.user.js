@@ -10,7 +10,7 @@
 // @description:ja     e-hentaiスクロールスクロールでブラウジングを続ける
 // @copyright          2019, HrJasn (https://greasyfork.org/zh-TW/users/142344-jasn-hr)
 // @license            GPL-3.0-or-later
-// @version            3.0.1
+// @version            3.0.2
 // @icon               https://www.google.com/s2/favicons?domain=e-hentai.org
 // @match              http*://e-hentai.org/s/*
 // @match              http*://exhentai.org/s/*
@@ -50,7 +50,7 @@
                     'PrevBtn' : pImg,
                     'NextBtn' : nImg
                 });
-                console.log('Update ImgJsonArr: ', ImgJsonArr);
+                //console.log('Update ImgJsonArr: ', ImgJsonArr);
                 if(pImg.href != cnImg.href){
                     LoadBeforeImageToJsonArr(pImg);
                 };
@@ -73,7 +73,7 @@
                     'PrevBtn' : pImg,
                     'NextBtn' : nImg
                 });
-                console.log('Update ImgJsonArr: ', ImgJsonArr);
+                //console.log('Update ImgJsonArr: ', ImgJsonArr);
                 if(nImg.href != cnImg.href){
                     LoadAfterImageToJsonArr(nImg);
                 };
@@ -109,7 +109,7 @@
                     const IJAcuImg = ImgJsonArr.find((ij)=>{
                         return ( ij.mainImage.querySelector('img').getAttribute("pageurl").match(/\/(.*)$/)[1] == cuImg.getAttribute("pageurl").match(/\/(.*)$/)[1] );
                     });
-                    if ( (currentScrollTop >= lastScrollTop) && ((currentScrollTop + window.innerHeight) >= document.body.offsetHeight*0.99) ) {
+                    if (currentScrollTop >= lastScrollTop) {
                         ImgJsonArr.forEach((ImgJson,ImgJsonIdx)=>{
                             if( ((ImgJsonArr.indexOf(IJAcuImg)-5) <= ImgJsonIdx) && (ImgJsonIdx < (ImgJsonArr.indexOf(IJAcuImg)+5)) ){
                                 if( !(sMImgArr.find((sMImgNE)=>{
@@ -167,7 +167,7 @@
                         return ( (ImgJsonArr.indexOf(cuImg)-5<ahi) && (ahi<ImgJsonArr.indexOf(cuImg)+5) );
                     });
                     console.log('Update dspArr: ',dspArr);
-                    dspArr.forEach((dspah)=>{
+                    dspArr.forEach((dspah,dspahi)=>{
                         let dspimg = dspah.mainImage.querySelector('img');
                         if( !([...scrollMode_DIV.querySelectorAll('img')].find((sDImg)=>{
                             return ( sDImg.getAttribute("pageurl").match(/\/(.*)$/)[1] == dspimg.getAttribute("pageurl").match(/\/(.*)$/)[1] );
@@ -175,6 +175,10 @@
                             let mainImage_clone = dspimg.cloneNode(true);
                             scrollMode_DIV.appendChild(mainImage_clone);
                             mainImage_clone = reSizeElmtFlwWidthIfScl(mainImage_clone);
+                            console.log(dspah.pageurl,location.href);
+                            if(dspah.pageurl.match(/\/(.*)$/)[1] == location.href.match(/\/(.*)$/)[1]){
+                                mainImage_clone.scrollIntoView();
+                            };
                         };
                     });
                     scrollMode_DIV.addEventListener("wheel",UpdatescrollMode_DIV,false);
@@ -224,7 +228,7 @@
             const cuImg = [...sMImgNl].find((img)=>{
                 return ( (document.body.offsetHeight > (img.y + img.offsetHeight)) && ((img.y + img.offsetHeight) > 0) )
             });
-            console.log(cuImg);
+            //console.log(cuImg);
             window.location.href = cuImg.getAttribute("pageurl");
         };
         scrollMode_DIV.addEventListener("click",HidescrollMode_DIV,false);
