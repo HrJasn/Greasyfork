@@ -10,7 +10,7 @@
 // @description:ja     e-hentaiスクロールスクロールでブラウジングを続ける
 // @copyright          2019, HrJasn (https://greasyfork.org/zh-TW/users/142344-jasn-hr)
 // @license            GPL-3.0-or-later
-// @version            3.0.3
+// @version            3.0.4
 // @icon               https://www.google.com/s2/favicons?domain=e-hentai.org
 // @match              http*://e-hentai.org/s/*
 // @match              http*://exhentai.org/s/*
@@ -95,63 +95,87 @@
         return Elmt;
     };
     let lastScrollTop = 0;
-    const UpdatescrollMode_DIV = () => {
+    const UpdatescrollMode_DIV = (evnt) => {
         document.body.style.overflow = "hidden";
+        let cuImg = null;
+        let sMImgNl = scrollMode_DIV.querySelectorAll('img');
+        let sMImgArr = [...sMImgNl];
         if(scrollMode_DIV.querySelector('img')){
-            const sMImgNl = scrollMode_DIV.querySelectorAll('img');
-            const sMImgArr = [...sMImgNl];
-            const cuImg = sMImgArr.find((img)=>{
+            cuImg = sMImgArr.find((img)=>{
                 return ( (document.body.offsetHeight > (img.y + img.offsetHeight)) && ((img.y + img.offsetHeight) > 0) )
             });
-            if(cuImg){
-                const currentScrollTop = cuImg.y + cuImg.offsetHeight;
-                const IJAcuImg = ImgJsonArr.find((ij)=>{
-                    return ( ij.mainImage.querySelector('img').getAttribute("pageurl").match(/\/(.*)$/)[1] == cuImg.getAttribute("pageurl").match(/\/(.*)$/)[1] );
+        } else {
+            cuImg = ImgJsonArr.find((img)=>{
+                return ( img.pageurl.match(/\-([^\-]+)$/)[1] == location.href.match(/\-([^\-]+)$/)[1] )
+            });
+            let mainImage_clone = cuImg.mainImage.querySelector('img').cloneNode(true);
+            scrollMode_DIV.appendChild(mainImage_clone);
+            mainImage_clone = reSizeElmtFlwWidthIfScl(mainImage_clone);
+            cuImg = mainImage_clone;
+        };
+        if(cuImg){
+            const currentScrollTop = (cuImg.y + cuImg.offsetHeight) || scrollMode_DIV.scrollTop;
+            const IJAcuImg = ImgJsonArr.find((ij)=>{
+                return ( ij.pageurl.match(/\-([^\-]+)$/)[1] == cuImg.getAttribute("pageurl").match(/\-([^\-]+)$/)[1] );
+            });
+            if (currentScrollTop > (lastScrollTop + (cuImg.offsetHeight*0.5))) {
+                [...ImgJsonArr].forEach((ImgJson,ImgJsonIdx)=>{
+                    const IJACIdx = ImgJsonArr.indexOf(IJAcuImg);
+                    sMImgNl = scrollMode_DIV.querySelectorAll('img');
+                    sMImgArr = [...sMImgNl];
+                    if( ((IJACIdx-5) <= ImgJsonIdx) && (ImgJsonIdx < (IJACIdx+5)) ){
+                        let sMcuImg = null;
+                        sMcuImg = sMImgArr.find((sMImgNE)=>{
+                            return ( sMImgNE.getAttribute("pageurl").match(/\-([^\-]+)$/)[1] == ImgJson.pageurl.match(/\-([^\-]+)$/)[1] );
+                        });
+                        if( !(sMcuImg) ){
+                            let mainImage_clone = ImgJson.mainImage.querySelector('img').cloneNode(true);
+                            scrollMode_DIV.appendChild(mainImage_clone);
+                            mainImage_clone = reSizeElmtFlwWidthIfScl(mainImage_clone);
+                            sMcuImg = mainImage_clone;
+                        };
+                        if ( !(evnt) && (sMcuImg) && (sMcuImg.getAttribute("pageurl").match(/\-([^\-]+)$/)[1] == location.href.match(/\-([^\-]+)$/)[1]) ) {
+                            sMcuImg.scrollIntoView();
+                        };
+                    };
+                    if( ImgJsonIdx < (IJACIdx-5) ){
+                        sMImgNl.forEach((sMImgNE)=>{
+                            if( ImgJson.pageurl.match(/\-([^\-]+)$/)[1] == sMImgNE.getAttribute("pageurl").match(/\-([^\-]+)$/)[1] ){
+                                sMImgNE.remove();
+                            };
+                        });
+                    };
                 });
-                if (currentScrollTop >= lastScrollTop) {
-                    ImgJsonArr.forEach((ImgJson,ImgJsonIdx)=>{
-                        if( ((ImgJsonArr.indexOf(IJAcuImg)-5) <= ImgJsonIdx) && (ImgJsonIdx < (ImgJsonArr.indexOf(IJAcuImg)+5)) ){
-                            if( !(sMImgArr.find((sMImgNE)=>{
-                                return ( sMImgNE.getAttribute("pageurl").match(/\/(.*)$/)[1] == ImgJson.mainImage.querySelector('img').getAttribute("pageurl").match(/\/(.*)$/)[1] );
-                            })) ){
-                                let mainImage_clone = ImgJson.mainImage.querySelector('img').cloneNode(true);
-                                scrollMode_DIV.appendChild(mainImage_clone);
-                                mainImage_clone = reSizeElmtFlwWidthIfScl(mainImage_clone);
+                lastScrollTop = currentScrollTop;
+            } else if (currentScrollTop < (lastScrollTop - (cuImg.offsetHeight*0.5))) {
+                const ImgJsonArrRvsd = [...ImgJsonArr].reverse();
+                [...ImgJsonArrRvsd].forEach((ImgJson,ImgJsonIdx)=>{
+                    const IJACIdx = ImgJsonArrRvsd.indexOf(IJAcuImg);
+                    sMImgNl = scrollMode_DIV.querySelectorAll('img');
+                    sMImgArr = [...sMImgNl];
+                    if( ((IJACIdx+5) >= ImgJsonIdx) && (ImgJsonIdx > (IJACIdx-5)) ){
+                        let sMcuImg = null;
+                        sMcuImg = sMImgArr.find((sMImgNE)=>{
+                            return ( sMImgNE.getAttribute("pageurl").match(/\-([^\-]+)$/)[1] == ImgJson.pageurl.match(/\-([^\-]+)$/)[1] );
+                        });
+                        if( !(sMcuImg) ){
+                            let mainImage_clone = ImgJson.mainImage.querySelector('img').cloneNode(true);
+                            scrollMode_DIV.insertBefore(mainImage_clone,sMImgArr[0]);
+                            mainImage_clone = reSizeElmtFlwWidthIfScl(mainImage_clone);
+                            sMcuImg = mainImage_clone;
+                        };
+                        if ( !(evnt) && (sMcuImg) && (sMcuImg.getAttribute("pageurl").match(/\-([^\-]+)$/)[1] == location.href.match(/\-([^\-]+)$/)[1]) ) {
+                            sMcuImg.scrollIntoView();
+                        };
+                    };
+                    if( ImgJsonIdx <= (IJACIdx-5) ){
+                        sMImgNl.forEach((sMImgNE)=>{
+                            if( ImgJson.pageurl.match(/\-([^\-]+)$/)[1] == sMImgNE.getAttribute("pageurl").match(/\-([^\-]+)$/)[1] ){
+                                sMImgNE.remove();
                             };
-                        };
-                        if( ImgJsonIdx < (ImgJsonArr.indexOf(IJAcuImg)-5) ){
-                            sMImgNl.forEach((sMImgNE)=>{
-                                if( ImgJson.mainImage.querySelector('img').getAttribute("pageurl").match(/\/(.*)$/)[1] == sMImgNE.getAttribute("pageurl").match(/\/(.*)$/)[1] ){
-                                    sMImgNE.remove();
-                                };
-                            });
-                        };
-                    });
-                    scrollMode_DIV.style.height = "100%";
-                    scrollMode_DIV.style.top = 0;
-                } else {
-                    let ImgJsonArrRvsd = [...ImgJsonArr].reverse();
-                    ImgJsonArrRvsd.forEach((ImgJson,ImgJsonIdx)=>{
-                        if( ((ImgJsonArrRvsd.indexOf(IJAcuImg)+5) >= ImgJsonIdx) && (ImgJsonIdx > (ImgJsonArrRvsd.indexOf(IJAcuImg)-5)) ){
-                            if( !(sMImgArr.find((sMImgNE)=>{
-                                return ( sMImgNE.getAttribute("pageurl").match(/\/(.*)$/)[1] == ImgJson.mainImage.querySelector('img').getAttribute("pageurl").match(/\/(.*)$/)[1] );
-                            })) ){
-                                let mainImage_clone = ImgJson.mainImage.querySelector('img').cloneNode(true);
-                                scrollMode_DIV.insertBefore(mainImage_clone,sMImgArr[0]);
-                                mainImage_clone = reSizeElmtFlwWidthIfScl(mainImage_clone);
-                            };
-                        };
-                        if( ImgJsonIdx <= (ImgJsonArrRvsd.indexOf(IJAcuImg)-5) ){
-                            sMImgNl.forEach((sMImgNE)=>{
-                                if( ImgJson.mainImage.querySelector('img').getAttribute("pageurl").match(/\/(.*)$/)[1] == sMImgNE.getAttribute("pageurl").match(/\/(.*)$/)[1] ){
-                                    sMImgNE.remove();
-                                };
-                            });
-                        };
-                    });
-                    scrollMode_DIV.style.height = "100%";
-                    scrollMode_DIV.style.top = 0;
-                };
+                        });
+                    };
+                });
                 lastScrollTop = currentScrollTop;
             };
         };
@@ -160,48 +184,17 @@
         let cuImg = null;
         let currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
         if ( (currentScrollTop >= lastScrollTop) && (currentScrollTop + window.innerHeight >= document.body.offsetHeight*0.99) ) {
-            if(!scrollMode_DIV.querySelector('img')){
-                cuImg = mainImage;
-                let dspArr = ImgJsonArr.filter((ah,ahi,aharr)=>{
-                    return ( (ImgJsonArr.indexOf(cuImg)-5<ahi) && (ahi<ImgJsonArr.indexOf(cuImg)+5) );
-                });
-                console.log('Update dspArr: ',dspArr);
-                dspArr.forEach((dspah,dspahi)=>{
-                    let dspimg = dspah.mainImage.querySelector('img');
-                    if( !([...scrollMode_DIV.querySelectorAll('img')].find((sDImg)=>{
-                        return ( sDImg.getAttribute("pageurl").match(/\/(.*)$/)[1] == dspimg.getAttribute("pageurl").match(/\/(.*)$/)[1] );
-                    })) ){
-                        let mainImage_clone = dspimg.cloneNode(true);
-                        scrollMode_DIV.appendChild(mainImage_clone);
-                        mainImage_clone = reSizeElmtFlwWidthIfScl(mainImage_clone);
-                        console.log(dspah.pageurl,location.href);
-                        if(dspah.pageurl.match(/\/(.*)$/)[1] == location.href.match(/\/(.*)$/)[1]){
-                            mainImage_clone.scrollIntoView();
-                        };
-                    };
-                });
-                scrollMode_DIV.addEventListener("wheel",UpdatescrollMode_DIV,false);
-                scrollMode_DIV.addEventListener("scroll",UpdatescrollMode_DIV,false);
-                scrollMode_DIV.addEventListener("keydown",UpdatescrollMode_DIV,false);
-                document.removeEventListener("wheel",ShowscrollMode_DIV,false);
-                document.removeEventListener("scroll",ShowscrollMode_DIV,false);
-                document.removeEventListener("keydown",ShowscrollMode_DIV,false);
-                document.body.style.overflow="hidden";
-                scrollMode_DIV.style.height = "100%";
-                scrollMode_DIV.style.top = '0px';
-                scrollMode_DIV.focus();
-            } else if(scrollMode_DIV.querySelector('img')){
-                document.body.style.overflow="hidden";
-                scrollMode_DIV.style.height = "100%";
-                scrollMode_DIV.style.top = '0px';
-                scrollMode_DIV.addEventListener("wheel",UpdatescrollMode_DIV,false);
-                scrollMode_DIV.addEventListener("scroll",UpdatescrollMode_DIV,false);
-                scrollMode_DIV.addEventListener("keydown",UpdatescrollMode_DIV,false);
-                document.removeEventListener("wheel",ShowscrollMode_DIV,false);
-                document.removeEventListener("scroll",ShowscrollMode_DIV,false);
-                document.removeEventListener("keydown",ShowscrollMode_DIV,false);
-                scrollMode_DIV.focus();
-            };
+            document.body.style.overflow="hidden";
+            scrollMode_DIV.style.height = "100%";
+            scrollMode_DIV.style.top = '0px';
+            scrollMode_DIV.addEventListener("wheel",UpdatescrollMode_DIV,false);
+            scrollMode_DIV.addEventListener("scroll",UpdatescrollMode_DIV,false);
+            scrollMode_DIV.addEventListener("keydown",UpdatescrollMode_DIV,false);
+            document.removeEventListener("wheel",ShowscrollMode_DIV,false);
+            document.removeEventListener("scroll",ShowscrollMode_DIV,false);
+            document.removeEventListener("keydown",ShowscrollMode_DIV,false);
+            scrollMode_DIV.focus();
+            UpdatescrollMode_DIV();
         };
         lastScrollTop = currentScrollTop;
     };
@@ -227,7 +220,6 @@
         const cuImg = [...sMImgNl].find((img)=>{
             return ( (document.body.offsetHeight > (img.y + img.offsetHeight)) && ((img.y + img.offsetHeight) > 0) )
         });
-        //console.log(cuImg);
         window.location.href = cuImg.getAttribute("pageurl");
     };
     scrollMode_DIV.addEventListener("click",HidescrollMode_DIV,false);
