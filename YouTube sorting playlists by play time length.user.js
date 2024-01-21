@@ -13,7 +13,7 @@
 // @icon               https://www.google.com/s2/favicons?domain=www.youtube.com
 // @homepageURL        https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @supportURL         https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @version            1.5
+// @version            1.6
 // @namespace          https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @grant              none
 // @match              http*://www.youtube.com/*
@@ -108,11 +108,11 @@
                 if(ypvricarr.length != 0){
                     let ypvrearr = [];
                     let orgetih = evnt.target.innerHTML;
-                    if(orgetih == ('　' + ypvlmt + '▲')){
+                    if(orgetih == ('　' + ypvlmt + '↑')){
                         ypvrearr = [...ypvricarr].sort((a,b)=>{
                             return parseInt(b.playlistVideoRenderer.lengthSeconds) - parseInt(a.playlistVideoRenderer.lengthSeconds);
                         });
-                    } else if( (orgetih == ('　' + ypvlmt + '▼')) || (orgetih == ('　' + ypvlmt + '▲▼')) ){
+                    } else if( (orgetih == ('　' + ypvlmt + '↓')) || (orgetih == ('　' + ypvlmt + '↑↓')) ){
                         ypvrearr = [...ypvricarr].sort((a,b)=>{
                             return parseInt(a.playlistVideoRenderer.lengthSeconds) - parseInt(b.playlistVideoRenderer.lengthSeconds);
                         });
@@ -120,7 +120,7 @@
                         ypvrearr = [...ypvricarr].sort((a,b)=>{
                             return parseInt(a.playlistVideoRenderer.lengthSeconds) - parseInt(b.playlistVideoRenderer.lengthSeconds);
                         });
-                        orgetih = ('　' + ypvlmt + '▼');
+                        orgetih = ('　' + ypvlmt + '↓');
                         evnt.target.innerHTML = orgetih;
                     };
                     function IsrtSrtSim(carr1,carr2) {
@@ -143,7 +143,7 @@
                     };
                     let ttcnts = IsrtSrtSim(ypvricarr,ypvrearr);
                     console.log(ttcnts);
-                    orgetih = (orgetih == ('　' + ypvlmt + '▲'))?('　' + ypvlmt + '▼'):('　' + ypvlmt + '▲');
+                    orgetih = (orgetih == ('　' + ypvlmt + '↑'))?('　' + ypvlmt + '↓'):('　' + ypvlmt + '↑');
                     if(gck = JSON.parse(getCookie('CustomSortStatus'))){
                         gck.BtnStr = orgetih;
                         setCookie('CustomSortStatus',JSON.stringify(gck),null);
@@ -341,7 +341,7 @@
             };
             let yvlmen = '';
             if( !(gck = JSON.parse(getCookie('CustomSortStatus'))) ){
-                yvlmen = ypvlmt + '▲▼';
+                yvlmen = ypvlmt + '↑↓';
             } else {
                 yvlmen = gck.BtnStr;
             };
