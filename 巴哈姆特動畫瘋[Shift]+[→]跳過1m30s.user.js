@@ -7,21 +7,22 @@
 // @icon               https://www.google.com/s2/favicons?domain=ani.gamer.com.tw
 // @homepageURL        https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @supportURL         https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @version            1.2
+// @version            1.3
 // @namespace          https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @grant              none
 // @match              http*://ani.gamer.com.tw/animeVideo.php?sn=*
 // @exclude            http*://ani.gamer.com.tw/
+// @run-at        document-start
 
 // ==/UserScript==
 
-let observer;
-observer = new MutationObserver( (mutations) => {
+let bahaobserver;
+bahaobserver = new MutationObserver( (mutations) => {
     mutations.forEach((adNds)=>{
         adNds.addedNodes.forEach((adNde)=>{
             if( (adNde) && (adNde.querySelector) && (adNde.querySelector('video')) ){
                 console.log('巴哈姆特動畫瘋快捷鍵跳過1m30s已讀入。');
-                observer.disconnect();
+                bahaobserver.disconnect();
                 const videoe = document.querySelector('video');
                 const videopne = videoe.parentNode;
                 let keyDownHis = {};
@@ -75,5 +76,4 @@ observer = new MutationObserver( (mutations) => {
         });
     });
 });
-observer.observe(document, {attributes:true, childList:true, subtree:true});
-
+bahaobserver.observe(document, {attributes:true, childList:true, subtree:true});
