@@ -13,70 +13,83 @@
 // @icon               https://www.google.com/s2/favicons?domain=shopee.tw
 // @homepageURL        https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @supportURL         https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @version            1.1
+// @version            1.2
 // @namespace          https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @grant              none
 // @match              http*://shopee.tw
 // @match              http*://shopee.tw/*
 
+// @downloadURL https://update.greasyfork.org/scripts/497922/Shopee%20shopping%20cart%20display%20liked%20products.user.js
+// @updateURL https://update.greasyfork.org/scripts/497922/Shopee%20shopping%20cart%20display%20liked%20products.meta.js
 // ==/UserScript==
 
-(() => {
-    window.addEventListener('load',() => {
-        let observer;
-        observer = new MutationObserver( (mutations) => {
-            mutations.forEach((adNds)=>{
-                adNds.addedNodes.forEach(async (adNde)=>{
-                    if( (adNde) && (adNde.classList) && (adNde.classList.contains("shopee-header-section")) ){
-                        console.log(adNde);
-                        let userLang = navigator.userLanguage || navigator.language || navigator.browserLanguage || navigator.systemLanguage;
-                        let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+(async () => {
+    async function waitForElm(selector) {
+        return new Promise(resolve => {
+            if (document.querySelector(selector)) {
+                return resolve(document.querySelector(selector));
+            };
+            const observer = new MutationObserver(mutations => {
+                if (document.querySelector(selector)) {
+                    observer.disconnect();
+                    resolve(document.querySelector(selector));
+                }
+            });
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        });
+    };
+    const adNde = await waitForElm(".shopee-header-section");
+    console.log(adNde);
 
-                        let liked_count = await fetch("https://shopee.tw/api/v4/pages/get_like_count", {
-                            "method": "GET"
-                        }).then((response) => {
-                            return response.json();
-                        }).then((json) => {
-                            return json;
-                        });
-                        let LikedItemsMaxCount = liked_count.data.total_count || liked_count.data.distribution.product_liked_count || 20;
+    if (adNde) {
 
-                        let liked_items = await fetch("https://shopee.tw/api/v4/pages/get_liked_items?category_ids=&cursor=0&keyword=&limit=" + LikedItemsMaxCount.toString() + "&offset=0&status=0", {
-                            "method": "GET",
-                            "headers": {
-                                "x-api-source": "rn",
-                                "x-shopee-language": userLang,
-                                "x-shopee-client-timezone": userTimezone,
-                                "user-agent": "Android app Shopee appver=32511 app_type=1 platform=native_android os_ver=30 Cronet/102.0.5005.61",
-                                "accept-encoding": "gzip, deflate, br"
-                            }
-                        }).then((response) => {
-                            return response.json();
-                        }).then((json) => {
-                            return json;
-                        });
+        let userLang = navigator.userLanguage || navigator.language || navigator.browserLanguage || navigator.systemLanguage;
+        let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-                        console.log(liked_items)
+        let liked_count = await fetch("https://shopee.tw/api/v4/pages/get_like_count", {
+            "method": "GET"
+        }).then((response) => {
+            return response.json();
+        }).then((json) => {
+            return json;
+        });
+        let LikedItemsMaxCount = liked_count.data.total_count || liked_count.data.distribution.product_liked_count || 20;
 
-                        for (let lin = 0; lin < liked_items.data.items.length; lin++) {
-                            let lio = liked_items.data.items[lin];
-                            let NewDiv = await AddLikedItem(lio);
-                            console.log(NewDiv);
-                        };
+        const liked_items = await fetch("https://shopee.tw/api/v4/pages/get_liked_items?&cursor=0&limit=" + LikedItemsMaxCount.toString() + "&offset=0&status=0", {
+            "method": "GET"
+        }).then(response=>response.json()).then(data=>{
+            console.log(data);
+            return data
+        });
 
-                        async function AddLikedItem(likeitemJson){
+        console.log(liked_items);
 
-                            let itemname = likeitemJson.name;
-                            let contenthref = "/" + itemname + "-i." + likeitemJson.shopid + "." + likeitemJson.itemid;
-                            let imgid = likeitemJson.image;
-                            let itemprice = likeitemJson.price / 100000;
+        if ( (liked_items) && (liked_items.data) ) {
 
-                            const liketitle = [...document.querySelectorAll('div.shopee-header-section')].find((e)=>{return e.innerText.match(/喜歡|like/)});
-                            const likelist = liketitle.nextSibling;
-                            let NewDiv = likelist.insertBefore(document.createElement("div"), likelist.firstChild);
-                            NewDiv.classList.add("N_YeYe");
-                            NewDiv.style.transition = 'all 0.2s';
-                            NewDiv.insertAdjacentHTML('afterbegin', `
+            const liked_items_data_items = liked_items.data.items.reverse();
+
+            for (let lin = 0; lin < liked_items_data_items.length; lin++) {
+                let lio = liked_items.data.items[lin];
+                let NewDiv = await AddLikedItem(lio);
+                console.log(NewDiv);
+            };
+
+            async function AddLikedItem(likeitemJson){
+
+                let itemname = likeitemJson.name;
+                let contenthref = "/" + itemname + "-i." + likeitemJson.shopid + "." + likeitemJson.itemid;
+                let imgid = likeitemJson.image;
+                let itemprice = likeitemJson.price / 100000;
+
+                const liketitle = [...document.querySelectorAll('div.shopee-header-section')].find((e)=>{return e.innerText.match(/喜歡|like/)});
+                const likelist = liketitle.nextSibling;
+                let NewDiv = likelist.insertBefore(document.createElement("div"), likelist.firstChild);
+                NewDiv.classList.add("N_YeYe");
+                NewDiv.style.transition = 'all 0.2s';
+                NewDiv.insertAdjacentHTML('afterbegin', `
                                 <div class="shopee_ic" style="display: contents;">
                                     <a class="contents" href="` + contenthref + `">
                                         <div class="flex flex-col bg-white cursor-pointer h-full h-full duration-100 ease-sharp-motion-curve hover:shadow-hover active:shadow-active hover:-translate-y-[1px] active:translate-y-0 relative hover:z-[1] border border-shopee-black9">
@@ -100,16 +113,16 @@
                                         </div>
                             `);
 
-                            if(likeitemJson.stock == 0){
-                                let locateSoldText = {
-                                    'en':'Sold out',
-                                    'zh-TW':'已售完',
-                                    'zh-CN':'已售完'
-                                };
-                                locateSoldText = locateSoldText[userLang] || locateSoldText.en;
-                                let NewSoldDiv = NewDiv.querySelector("img").parentNode.appendChild(document.createElement("div"));
-                                let NewSoldDivTextNode = NewSoldDiv.appendChild(document.createTextNode(locateSoldText));
-                                NewSoldDiv.style = `
+                if(likeitemJson.stock == 0){
+                    let locateSoldText = {
+                        'en':'Sold out',
+                        'zh-TW':'已售完',
+                        'zh-CN':'已售完'
+                    };
+                    locateSoldText = locateSoldText[userLang] || locateSoldText.en;
+                    let NewSoldDiv = NewDiv.querySelector("img").parentNode.appendChild(document.createElement("div"));
+                    let NewSoldDivTextNode = NewSoldDiv.appendChild(document.createTextNode(locateSoldText));
+                    NewSoldDiv.style = `
                                     color: #fff;
                                     align-items: center;
                                     background-color: rgba(0, 0, 0, 0.7);
@@ -125,15 +138,15 @@
                                     transform: translate(-50%, -50%);
                                     width: 120px;
                                 `;
-                            };
+                };
 
-                            let NewLikeBtn = NewDiv.querySelector("img").parentNode.appendChild(document.createElement("button"));
-                            NewLikeBtn.insertAdjacentHTML('afterbegin', `
+                let NewLikeBtn = NewDiv.querySelector("img").parentNode.appendChild(document.createElement("button"));
+                NewLikeBtn.insertAdjacentHTML('afterbegin', `
                                 <svg width="24" height="20" class="vgMiJB">
                                     <path d="M19.469 1.262c-5.284-1.53-7.47 4.142-7.47 4.142S9.815-.269 4.532 1.262C-1.937 3.138.44 13.832 12 19.333c11.559-5.501 13.938-16.195 7.469-18.07z" stroke="#FF424F" stroke-width="1.5" fill="#FF424F" fill-rule="evenodd" stroke-linejoin="round"/>
                                 </svg>
                             `);
-                            NewLikeBtn.style = `
+                NewLikeBtn.style = `
                                 background-color: transparent;
                                 border: 0;
                                 display: flex;
@@ -145,54 +158,49 @@
                                 z-index: 999;
                             `;
 
-                            NewLikeBtn.addEventListener("click",async (evnt)=>{
-                                console.log(evnt);
-                                evnt.preventDefault();
-                                evnt.stopPropagation();
-                                evnt.stopImmediatePropagation();
-                                let ep = evnt.target.querySelector("path") || evnt.target;
-                                let pbodyStr = JSON.stringify({
-                                    "shop_item_ids": [
-                                        {
-                                            "shop_id": likeitemJson.shopid,
-                                            "item_id": likeitemJson.itemid
-                                        }
-                                    ]
-                                });
-                                if(ep.getAttribute('fill') == 'none'){
-                                    await fetch("https://shopee.tw/api/v4/pages/like_items", {
-                                        "headers": {
-                                            "accept": "application/json",
-                                            "content-type": "application/json"
-                                        },
-                                        "body": pbodyStr,
-                                        "method": "POST",
-                                        "credentials": "include"
-                                    });
-                                    ep.setAttribute('fill', '#FF424F');
-                                    ep.parentNode.parentNode.parentNode.style.boxShadow = 'pink 0px 10px 50px inset';
-                                } else {
-                                    await fetch("https://shopee.tw/api/v4/pages/unlike_items", {
-                                        "headers": {
-                                            "accept": "application/json",
-                                            "content-type": "application/json"
-                                        },
-                                        "body": pbodyStr,
-                                        "method": "POST",
-                                        "credentials": "include"
-                                    });
-                                    ep.setAttribute('fill', 'none');
-                                    ep.parentNode.parentNode.parentNode.style.boxShadow = 'gray 0px 10px 50px inset';
-                                };
-                            });
-
-                            return NewDiv;
-                        };
-                        observer.disconnect();
+                NewLikeBtn.addEventListener("click",async (evnt)=>{
+                    console.log(evnt);
+                    evnt.preventDefault();
+                    evnt.stopPropagation();
+                    evnt.stopImmediatePropagation();
+                    let ep = evnt.target.querySelector("path") || evnt.target;
+                    let pbodyStr = JSON.stringify({
+                        "shop_item_ids": [
+                            {
+                                "shop_id": likeitemJson.shopid,
+                                "item_id": likeitemJson.itemid
+                            }
+                        ]
+                    });
+                    if(ep.getAttribute('fill') == 'none'){
+                        await fetch("https://shopee.tw/api/v4/pages/like_items", {
+                            "headers": {
+                                "accept": "application/json",
+                                "content-type": "application/json"
+                            },
+                            "body": pbodyStr,
+                            "method": "POST",
+                            "credentials": "include"
+                        });
+                        ep.setAttribute('fill', '#FF424F');
+                        ep.parentNode.parentNode.parentNode.style.boxShadow = 'pink 0px 10px 50px inset';
+                    } else {
+                        await fetch("https://shopee.tw/api/v4/pages/unlike_items", {
+                            "headers": {
+                                "accept": "application/json",
+                                "content-type": "application/json"
+                            },
+                            "body": pbodyStr,
+                            "method": "POST",
+                            "credentials": "include"
+                        });
+                        ep.setAttribute('fill', 'none');
+                        ep.parentNode.parentNode.parentNode.style.boxShadow = 'gray 0px 10px 50px inset';
                     };
                 });
-            });
-        });
-        observer.observe(document, {attributes:true, childList:true, subtree:true});
-    });
+
+                return NewDiv;
+            };
+        };
+    };
 })();
