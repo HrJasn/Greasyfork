@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         sniperex168.blogspot.com LocalStorage 選項記錄 匯出/匯入工具
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  點擊時才偵測 localStorage.KEY，並提供匯出/匯入 JSON 功能（改善 script 延遲載入問題）
 // @author       HrJasn
 // @match        *://sniperex168.blogspot.com/*
@@ -80,7 +80,10 @@ console.log("載入 sniperex168.blogspot.com LocalStorage 選項記錄 匯出匯
     // 匯出功能
     exportBtn.addEventListener('click', () => {
         const detectedKey = findLocalStorageKey();
-        if (!detectedKey) return;
+        if (!detectedKey) {
+            alert(`找不到 localStorage.Key`);
+            return;
+        }
 
         const data = localStorage.getItem(detectedKey);
         if (!data) {
@@ -130,14 +133,17 @@ console.log("載入 sniperex168.blogspot.com LocalStorage 選項記錄 匯出匯
                 localStorage.setItem(detectedKey, JSON.stringify(json));
 
                 let confirm = document.querySelectorAll('.confirm');
-                if (localStorage[detectedKey] !== undefined) {
-                    var storagetemp = JSON.parse(localStorage[detectedKey]);
+                if (localStorage.getItem(detectedKey) !== undefined) {
+                    var storagetemp = JSON.parse(localStorage.getItem(detectedKey));
                     storagetemp.forEach((item) => {
                         if (item.chk !== 0) {
                             confirm.forEach((elem) => {
                                 if (elem.name == item.name) {
                                     elem.checked = true;
-                                    window.scrollTo({ top: elem.offsetTop, behavior: "smooth" });
+                                    elem.scrollIntoView({
+                                        behavior: "smooth",
+                                        block: "center" // 可選值: "start", "center", "end", "nearest"
+                                    });
                                 }
                             });
                         }
