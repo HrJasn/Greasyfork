@@ -4,17 +4,18 @@
 // @name:zh-TW         Stackoverflow 增加複製按鈕
 // @name:zh-CN         Stackoverflow 添加复制按钮
 // @name:ja            Stackoverflow はコピーボタンを追加します
-// @namespace    https://greasyfork.org/zh-TW/users/142344-jasn-hr
+// @namespace          https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @description        Stackoverflow add button for copy to clipboard.
 // @description:zh-TW  Stackoverflow 增加複製按鈕以複製原始碼到剪貼簿。
 // @description:zh-CN  Stackoverflow 添加复制按钮以复制原始码到剪贴簿。
 // @description:ja     ソースコードをクリップボードにコピーするためのコピーボタンをStackoverflowに追加しました。
-// @copyright    2022, HrJasn (https://greasyfork.org/zh-TW/users/142344-jasn-hr)
-// @license      GPL-3.0-or-later
-// @version      1.6
-// @icon         https://www.google.com/s2/favicons?domain=stackoverflow.com
-// @match      /^http[s]?://stackoverflow\.com/questions/[0-9]+/.*/
-// @grant        none
+// @copyright          2022, HrJasn (https://greasyfork.org/zh-TW/users/142344-jasn-hr)
+// @license            GPL3
+// @license            Copyright HrJasn
+// @version            1.7
+// @icon               https://www.google.com/s2/favicons?domain=stackoverflow.com
+// @match              /^http[s]?://stackoverflow\.com/questions/[0-9]+/.*/
+// @grant              none
 // ==/UserScript==
 
 (() => {

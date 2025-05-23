@@ -9,11 +9,12 @@
 // @description:zh-CN  使用官方API以播放时间长度排序清单
 // @description:ja     再生時間の長さによるプレイリストの並べ替えには、内部 API を使用します。
 // @copyright          2023, HrJasn (https://greasyfork.org/zh-TW/users/142344-jasn-hr)
-// @license            MIT
+// @license            GPL3
+// @license Copyright  HrJasn
 // @icon               https://www.google.com/s2/favicons?domain=www.youtube.com
 // @homepageURL        https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @supportURL         https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @version            1.6
+// @version            1.7
 // @namespace          https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @grant              none
 // @match              http*://www.youtube.com/*

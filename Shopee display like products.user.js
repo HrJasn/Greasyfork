@@ -9,11 +9,12 @@
 // @description:zh-TW  在蝦皮購物車下方顯示已按過喜歡的商品。
 // @description:zh-CN  在虾皮购物车下方显示已按过喜欢的商品。
 // @copyright          2024, HrJasn (https://greasyfork.org/zh-TW/users/142344-jasn-hr)
-// @license            MIT
+// @license            GPL3
+// @license            Copyright HrJasn
 // @icon               https://www.google.com/s2/favicons?domain=shopee.tw
 // @homepageURL        https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @supportURL         https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @version            1.2
+// @version            1.3
 // @namespace          https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @grant              none
 // @match              http*://shopee.tw

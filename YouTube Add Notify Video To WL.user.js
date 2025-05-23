@@ -9,11 +9,12 @@
 // @description:zh-CN  添加可将通知视频加入稍后观看清单的按钮。
 // @description:ja     通知から後でプレイリストを視聴するビデオに参加するボタンを追加します。
 // @copyright          2023, HrJasn (https://greasyfork.org/zh-TW/users/142344-jasn-hr)
-// @license            MIT
+// @license            GPL3
+// @license            Copyright HrJasn
 // @icon               https://www.google.com/s2/favicons?domain=www.youtube.com
 // @homepageURL        https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @supportURL         https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @version            1.5
+// @version            1.6
 // @namespace          https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @grant              none
 // @match              http*://www.youtube.com/*

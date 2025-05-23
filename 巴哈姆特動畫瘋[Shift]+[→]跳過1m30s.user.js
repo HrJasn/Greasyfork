@@ -3,16 +3,17 @@
 // @name               巴哈姆特動畫瘋[Shift]+[→]跳過1m30s
 // @description        巴哈姆特動畫瘋按下快捷鍵[Shift]+[→]跳過1分30秒
 // @copyright          2023, HrJasn (https://greasyfork.org/zh-TW/users/142344-jasn-hr)
-// @license            MIT
+// @license            GPL3
+// @license            Copyright HrJasn
 // @icon               https://www.google.com/s2/favicons?domain=ani.gamer.com.tw
 // @homepageURL        https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @supportURL         https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @version            1.3
+// @version            1.4
 // @namespace          https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @grant              none
 // @match              http*://ani.gamer.com.tw/animeVideo.php?sn=*
 // @exclude            http*://ani.gamer.com.tw/
-// @run-at        document-start
+// @run-at             document-start
 
 // ==/UserScript==
 

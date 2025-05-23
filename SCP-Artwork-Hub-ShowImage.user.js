@@ -9,8 +9,9 @@
 // @description:zh-CN  SCP 移动鼠标到文艺中心贴文连结上以显示图档。
 // @description:ja     SCP Arts Centerの投稿リンクの上にマウスを移動して、画像を表示します。
 // @copyright          2024, HrJasn (https://greasyfork.org/zh-TW/users/142344-jasn-hr)
-// @license            GPL-3.0-or-later
-// @version            1.3.3
+// @license            GPL3
+// @license            Copyright HrJasn
+// @version            1.3.4
 // @icon               https://www.google.com/s2/favicons?domain=wikidot.com
 // @match              http://scp-zh-tr.wikidot.com/scp-artwork-hub
 // @match              http://scp-wiki-cn.wikidot.com/scp-artwork-hub

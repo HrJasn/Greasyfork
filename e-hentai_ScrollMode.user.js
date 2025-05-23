@@ -9,8 +9,9 @@
 // @description:zh-CN  在 e-hentai 滚动卷轴持续浏览
 // @description:ja     e-hentaiスクロールスクロールでブラウジングを続ける
 // @copyright          2019, HrJasn (https://greasyfork.org/zh-TW/users/142344-jasn-hr)
-// @license            GPL-3.0-or-later
-// @version            3.0.4
+// @license            GPL3
+// @license            Copyright HrJasn
+// @version            3.0.5
 // @icon               https://www.google.com/s2/favicons?domain=e-hentai.org
 // @match              http*://e-hentai.org/s/*
 // @match              http*://exhentai.org/s/*

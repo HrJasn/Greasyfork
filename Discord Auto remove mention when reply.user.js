@@ -9,8 +9,9 @@
 // @description:zh-CN  Discord 回復时自动移除标注。
 // @description:ja     Discord 返信時にメンションを自動的に削除。
 // @copyright          2022, HrJasn (https://greasyfork.org/zh-TW/users/142344-jasn-hr)
-// @license            MIT
-// @version            1.5
+// @license            GPL3
+// @license            Copyright HrJasn
+// @version            1.6
 // @icon               https://www.google.com/s2/favicons?domain=discord.com
 // @match              http*://discord.com/*
 // @exclude            http*://www.google.com/*
