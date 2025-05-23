@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         sniperex168.blogspot.com LocalStorage 選項記錄 匯出/匯入工具
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2
 // @description  點擊時才偵測 localStorage.KEY，並提供匯出/匯入 JSON 功能（改善 script 延遲載入問題）
 // @author       HrJasn
 // @match        *://sniperex168.blogspot.com/*
