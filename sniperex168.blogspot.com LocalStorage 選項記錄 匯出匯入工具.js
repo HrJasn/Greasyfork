@@ -6,6 +6,8 @@
 // @author       HrJasn
 // @match        *://sniperex168.blogspot.com/*
 // @grant        none
+// @license      GPL3
+// @license      Copyright HrJasn
 // ==/UserScript==
 
 console.log("載入 sniperex168.blogspot.com LocalStorage 選項記錄 匯出匯入工具");
