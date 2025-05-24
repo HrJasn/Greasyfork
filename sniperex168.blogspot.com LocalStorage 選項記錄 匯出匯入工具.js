@@ -1,13 +1,15 @@
 // ==UserScript==
 // @name         sniperex168.blogspot.com LocalStorage 選項記錄 匯出/匯入工具
 // @namespace    http://tampermonkey.net/
-// @version      1.4
+// @version      1.5
 // @description  點擊時才偵測 localStorage.KEY，並提供匯出/匯入 JSON 功能（改善 script 延遲載入問題）
 // @author       HrJasn
 // @match        *://sniperex168.blogspot.com/*
 // @grant        none
 // @license      GPL3
 // @license      Copyright HrJasn
+// @downloadURL https://update.greasyfork.org/scripts/536908/sniperex168blogspotcom%20LocalStorage%20%E9%81%B8%E9%A0%85%E8%A8%98%E9%8C%84%20%E5%8C%AF%E5%87%BA%E5%8C%AF%E5%85%A5%E5%B7%A5%E5%85%B7.user.js
+// @updateURL https://update.greasyfork.org/scripts/536908/sniperex168blogspotcom%20LocalStorage%20%E9%81%B8%E9%A0%85%E8%A8%98%E9%8C%84%20%E5%8C%AF%E5%87%BA%E5%8C%AF%E5%85%A5%E5%B7%A5%E5%85%B7.meta.js
 // ==/UserScript==
 
 console.log("載入 sniperex168.blogspot.com LocalStorage 選項記錄 匯出匯入工具");
@@ -71,19 +73,20 @@ console.log("載入 sniperex168.blogspot.com LocalStorage 選項記錄 匯出匯
 
                 const originalChecked = el.checked;
 
-                console.log('🛑 嘗試異動勾選狀態',el);
                 el.checked = true;
+                console.log('🛑 嘗試異動勾選狀態',el,originalChecked,el.checked);
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+
+                await new Promise(r => setTimeout(r, 100));
+
+                console.log('🛑 恢復勾選狀態',el,el.checked,originalChecked);
+                el.checked = originalChecked;
                 el.dispatchEvent(new Event('change', { bubbles: true }));
 
                 await new Promise(r => setTimeout(r, 100));
 
                 if (foundKey) break;
 
-                el.checked = originalChecked;
-                console.log('🛑 恢復勾選狀態',el);
-                el.dispatchEvent(new Event('change', { bubbles: true }));
-
-                await new Promise(r => setTimeout(r, 100));
             }
 
             if (!foundKey) {
