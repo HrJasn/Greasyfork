@@ -1,13 +1,11 @@
 // ==UserScript==
 // @name         sniperex168.blogspot.com LocalStorage 選項記錄 匯出/匯入工具
 // @namespace    http://tampermonkey.net/
-// @version      1.2
+// @version      1.3
 // @description  點擊時才偵測 localStorage.KEY，並提供匯出/匯入 JSON 功能（改善 script 延遲載入問題）
 // @author       HrJasn
 // @match        *://sniperex168.blogspot.com/*
 // @grant        none
-// @license      GPL3
-// @license      Copyright HrJasn
 // ==/UserScript==
 
 console.log("載入 sniperex168.blogspot.com LocalStorage 選項記錄 匯出匯入工具");
@@ -16,16 +14,83 @@ console.log("載入 sniperex168.blogspot.com LocalStorage 選項記錄 匯出匯
     console.log("執行 sniperex168.blogspot.com LocalStorage 選項記錄 匯出匯入工具");
     // ✅ 只有點擊時才找 script 內的 localStorage key
     function findLocalStorageKey() {
-        const scripts = Array.from(document.querySelectorAll("script"));
-        for (const script of scripts) {
-            const match = script.textContent.match(/localStorage\.([a-zA-Z0-9_]+)/);
-            if (match && match[1]) {
-                console.log(`✅ 偵測到 localStorage 使用鍵名：${match[1]}`);
-                return match[1];
+
+        // 在 UserScript 中「共用」的變數
+        let foundKey = null;
+
+        // 保存原本的 localStorage 方法
+        const originalSetItem = Storage.prototype.setItem;
+        const originalGetItem = Storage.prototype.getItem;
+
+        // 攔截 setItem
+        Storage.prototype.setItem = function(key, value) {
+            console.log(`LocalStorage 被存入: 鍵=${key}, 值=${value}`);
+            if (!foundKey) {
+                foundKey = key;
+                console.log(`✅ 找到的 LocalStorage Key: ${foundKey}`);
+                cleanup();
             }
+            return originalSetItem.call(this, key, value);
+        };
+
+        // 攔截 getItem（視需求）
+        Storage.prototype.getItem = function(key) {
+            console.log(`LocalStorage 被讀取: 鍵=${key}`);
+            return originalGetItem.call(this, key);
+        };
+
+        const confirmElements = document.querySelectorAll('.confirm');
+
+        function onChangeHandler(event) {
+            console.log(`觸發事件: .confirm 勾選改變`);
         }
-        alert('❌ 找不到任何 localStorage.KEY 使用紀錄');
-        return null;
+
+        function cleanup() {
+            Storage.prototype.setItem = originalSetItem;
+            Storage.prototype.getItem = originalGetItem;
+            console.log('🛑 已恢復原本的 localStorage 方法');
+
+            confirmElements.forEach(element => {
+                element.removeEventListener('change', onChangeHandler);
+            });
+            console.log('🛑 已移除所有 .confirm 的 change 事件監聽器');
+
+            // 如果其他函式要用到 foundKey，這裡也能使用 foundKey
+            console.log('🪄 其他函式也能拿到 foundKey:', foundKey);
+        }
+
+        confirmElements.forEach(element => {
+            element.addEventListener('change', onChangeHandler);
+        });
+
+        (async function autoTriggerEachConfirm() {
+            for (let el of confirmElements) {
+                if (foundKey) break;
+
+                const originalChecked = el.checked;
+
+                console.log('🛑 嘗試異動勾選狀態',el);
+                el.checked = true;
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+
+                await new Promise(r => setTimeout(r, 100));
+
+                if (foundKey) break;
+
+                el.checked = originalChecked;
+                console.log('🛑 恢復勾選狀態',el);
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+
+                await new Promise(r => setTimeout(r, 100));
+            }
+
+            if (!foundKey) {
+                alert('❌ 沒有找到任何 localStorage Key');
+                cleanup();
+            }
+        })();
+
+        return foundKey;
     }
 
     // 加入樣式
