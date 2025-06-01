@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         sniperex168.blogspot.com LocalStorage 選項記錄 匯出/匯入工具
 // @namespace    http://tampermonkey.net/
-// @version      2.0
+// @version      2.1
 // @description  點擊時才偵測 localStorage.KEY，並提供匯出/匯入 JSON 功能（改善 script 延遲載入問題）
 // @author       HrJasn
 // @match        *://sniperex168.blogspot.com/*
@@ -58,9 +58,6 @@ console.log("載入 sniperex168.blogspot.com LocalStorage 選項記錄 匯出匯
                 value: originalLocalStorage
             });
             console.log('🛑 已恢復原本的 localStorage 物件');
-
-            // 如果其他函式要用到 foundKey，這裡也能使用 foundKey
-            console.log('🪄 其他函式也能拿到 foundKey:', foundKey);
         }
 
         (async function autoTriggerEachConfirm() {
@@ -155,11 +152,15 @@ console.log("載入 sniperex168.blogspot.com LocalStorage 選項記錄 匯出匯
             return;
         }
 
-        const data = localStorage.getItem(detectedKey);
+        let data = localStorage.getItem(detectedKey);
         if (!data) {
             alert(`找不到 localStorage.${detectedKey} 的資料`);
             return;
         }
+        let jsondata = JSON.parse(data);
+        jsondata = [...new Set(jsondata)];
+        jsondata.sort();
+        data = JSON.stringify(jsondata);
 
         // 產生時間戳記 yyyyMMdd-HHmmss
         const now = new Date();
@@ -202,27 +203,29 @@ console.log("載入 sniperex168.blogspot.com LocalStorage 選項記錄 匯出匯
                 const json = JSON.parse(e.target.result);
                 localStorage.setItem(detectedKey, JSON.stringify(json));
 
-                let confirm = document.querySelectorAll('.confirm');
-                if (localStorage.getItem(detectedKey) !== undefined) {
-                    var storagetemp = JSON.parse(localStorage.getItem(detectedKey));
-                    storagetemp.forEach((item) => {
-                        if (item.chk !== 0) {
-                            confirm.forEach((elem) => {
-                                if (elem.name == item.name) {
-                                    elem.checked = true;
-                                    elem.scrollIntoView({
-                                        behavior: "smooth",
-                                        block: "center" // 可選值: "start", "center", "end", "nearest"
-                                    });
-                                }
-                            });
-                        }
+                const confirms = document.querySelectorAll('.confirm');
+                let storagetemp = JSON.parse(localStorage.getItem(detectedKey));
+                if (storagetemp !== undefined) {
+                    confirms.forEach((elem) => {
+                        let chkstts = false;
+                        storagetemp.forEach((item) => {
+                            if (elem.name == item) {
+                                chkstts = true;
+                                elem.scrollIntoView({
+                                    behavior: "smooth",
+                                    block: "center" // 可選值: "start", "center", "end", "nearest"
+                                });
+                            }
+                        });
+                        elem.checked = chkstts;
                     });
                 }
-
+                storagetemp = [...new Set(storagetemp)];
+                storagetemp.sort();
                 console.log(`匯入成功：已寫入 localStorage.${detectedKey}`);
             } catch (err) {
-                alert('匯入失敗：JSON 格式錯誤');
+                alert('匯入失敗：',err);
+                console.log('匯入失敗：',err);
             }
         };
         reader.readAsText(file);
