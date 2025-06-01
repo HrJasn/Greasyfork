@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         sniperex168.blogspot.com LocalStorage 選項記錄 匯出/匯入工具
 // @namespace    http://tampermonkey.net/
-// @version      1.6
+// @version      2.0
 // @description  點擊時才偵測 localStorage.KEY，並提供匯出/匯入 JSON 功能（改善 script 延遲載入問題）
 // @author       HrJasn
 // @match        *://sniperex168.blogspot.com/*
@@ -22,50 +22,46 @@ console.log("載入 sniperex168.blogspot.com LocalStorage 選項記錄 匯出匯
         // 在 UserScript 中「共用」的變數
         let foundKey = null;
 
-        // 保存原本的 localStorage 方法
-        const originalSetItem = Storage.prototype.setItem;
-        const originalGetItem = Storage.prototype.getItem;
+        // 取得原本的 localStorage 物件
+        const originalLocalStorage = window.localStorage;
 
-        // 攔截 setItem
-        Storage.prototype.setItem = function(key, value) {
-            console.log(`LocalStorage 被存入: 鍵=${key}, 值=${value}`);
-            if (!foundKey) {
-                foundKey = key;
-                console.log(`✅ 找到的 LocalStorage Key: ${foundKey}`);
-                cleanup();
+        // 用 Proxy 包裝整個 localStorage，攔截所有屬性賦值（包括 .ED9Kaidata = ... 這種）
+        const proxyLocalStorage = new Proxy(originalLocalStorage, {
+            set(target, prop, value) {
+                console.log(`✅ localStorage 被修改: key=${String(prop)}, value=${value}`);
+                if (!foundKey) {
+                    foundKey = String(prop);
+                    console.log(`✅ 找到的 localStorage Key: ${foundKey}`);
+                    cleanup();
+                }
+                target[prop] = value; // 實際執行賦值
+                return true;
             }
-            return originalSetItem.call(this, key, value);
-        };
+        });
 
-        // 攔截 getItem（視需求）
-        Storage.prototype.getItem = function(key) {
-            console.log(`LocalStorage 被讀取: 鍵=${key}`);
-            return originalGetItem.call(this, key);
-        };
+        // 替換 window.localStorage 為 Proxy 物件
+        Object.defineProperty(window, 'localStorage', {
+            configurable: true,
+            enumerable: true,
+            get() {
+                return proxyLocalStorage;
+            }
+        });
 
         const confirmElements = document.querySelectorAll('.confirm');
 
-        function onChangeHandler(event) {
-            console.log(`觸發事件: .confirm 勾選改變`);
-        }
-
         function cleanup() {
-            Storage.prototype.setItem = originalSetItem;
-            Storage.prototype.getItem = originalGetItem;
-            console.log('🛑 已恢復原本的 localStorage 方法');
-
-            confirmElements.forEach(element => {
-                element.removeEventListener('change', onChangeHandler);
+            // 恢復原本的 localStorage
+            Object.defineProperty(window, 'localStorage', {
+                configurable: true,
+                enumerable: true,
+                value: originalLocalStorage
             });
-            console.log('🛑 已移除所有 .confirm 的 change 事件監聽器');
+            console.log('🛑 已恢復原本的 localStorage 物件');
 
             // 如果其他函式要用到 foundKey，這裡也能使用 foundKey
             console.log('🪄 其他函式也能拿到 foundKey:', foundKey);
         }
-
-        confirmElements.forEach(element => {
-            element.addEventListener('change', onChangeHandler);
-        });
 
         (async function autoTriggerEachConfirm() {
             for (let el of confirmElements) {
@@ -73,20 +69,21 @@ console.log("載入 sniperex168.blogspot.com LocalStorage 選項記錄 匯出匯
 
                 const originalChecked = el.checked;
 
-                el.checked = (el.checked == true)?false:true;
-                console.log('🛑 嘗試異動勾選狀態',el,originalChecked,el.checked);
+                // 嘗試改變勾選
+                el.checked = !el.checked;
+                console.log('🛑 嘗試異動勾選狀態', el, originalChecked, el.checked);
                 el.dispatchEvent(new Event('change', { bubbles: true }));
 
                 await new Promise(r => setTimeout(r, 100));
 
-                console.log('🛑 恢復勾選狀態',el,el.checked,originalChecked);
+                // 恢復勾選
+                console.log('🛑 恢復勾選狀態', el, el.checked, originalChecked);
                 el.checked = originalChecked;
                 el.dispatchEvent(new Event('change', { bubbles: true }));
 
                 await new Promise(r => setTimeout(r, 100));
 
                 if (foundKey) break;
-
             }
 
             if (!foundKey) {
@@ -97,6 +94,7 @@ console.log("載入 sniperex168.blogspot.com LocalStorage 選項記錄 匯出匯
 
         return foundKey;
     }
+
 
     // 加入樣式
     const style = document.createElement('style');
