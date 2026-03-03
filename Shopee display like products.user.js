@@ -14,7 +14,7 @@
 // @icon               https://www.google.com/s2/favicons?domain=shopee.tw
 // @homepageURL        https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @supportURL         https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @version            1.3
+// @version            1.5
 // @namespace          https://greasyfork.org/zh-TW/users/142344-jasn-hr
 // @grant              none
 // @match              http*://shopee.tw
@@ -42,6 +42,50 @@
             });
         });
     };
+
+    function findMostFrequentLayerClass(rootElement) {
+        if (!rootElement) return "Element not found";
+
+        // 使用佇列 (Queue) 進行廣度優先搜尋 (BFS) - 由淺至深
+        let queue = [rootElement];
+        let maxCount = 0;
+        let mostFrequentClass = null;
+
+        while (queue.length > 0) {
+            let parent = queue.shift();
+            let children = [...parent.children];
+
+            // 1. 統計這一層 (同一層) 所有 div 的 class 數量
+            let layerCounts = {};
+
+            // 過濾出 tag 為 DIV 的子元素
+            let divSiblings = children.filter(el => el.tagName === 'DIV');
+
+            divSiblings.forEach(div => {
+                // 一個 div 可能有多個 class，全部分開統計
+                div.classList.forEach(cls => {
+                    layerCounts[cls] = (layerCounts[cls] || 0) + 1;
+                });
+            });
+
+            // 2. 檢查這一層是否有 class 贏過目前的最高紀錄
+            for (let [cls, count] of Object.entries(layerCounts)) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    mostFrequentClass = cls;
+                }
+            }
+
+            // 3. 將子元素加入佇列，繼續往下找
+            children.forEach(child => queue.push(child));
+        }
+
+        return {
+            className: mostFrequentClass,
+            count: maxCount
+        };
+    };
+
     const adNde = await waitForElm(".shopee-header-section");
     console.log(adNde);
 
@@ -81,14 +125,17 @@
             async function AddLikedItem(likeitemJson){
 
                 let itemname = likeitemJson.name;
+                let itemnameshop_location = likeitemJson.shop_location;
                 let contenthref = "/" + itemname + "-i." + likeitemJson.shopid + "." + likeitemJson.itemid;
                 let imgid = likeitemJson.image;
                 let itemprice = likeitemJson.price / 100000;
 
                 const liketitle = [...document.querySelectorAll('div.shopee-header-section')].find((e)=>{return e.innerText.match(/喜歡|like/)});
                 const likelist = liketitle.nextSibling;
+                const likelistitemcls = findMostFrequentLayerClass(likelist).className;
+
                 let NewDiv = likelist.insertBefore(document.createElement("div"), likelist.firstChild);
-                NewDiv.classList.add("N_YeYe");
+                NewDiv.classList.add(likelistitemcls);
                 NewDiv.style.transition = 'all 0.2s';
                 NewDiv.insertAdjacentHTML('afterbegin', `
                                 <div class="shopee_ic" style="display: contents;">
@@ -107,6 +154,11 @@
                                                                     <span class="text-xs/sp14"/>
                                                                 </div>
                                                             </div>
+                                                        </div>
+                                                        <div class="box-border flex !space-x-1 h-5 text-sp10 my:text-[0.5rem] km:text-[0.5rem] items-center overflow-hidden mb-2" aria-hidden="true">
+                                                          <div class="relative relative flex items-center text-[0.625rem] my:text-[0.5rem] km:text-[0.5rem] leading-4 py-0.5 px-1 pointer-events-none text-ellipsis overflow-hidden h-4 max-w-[56%] flex-shrink-0" style="margin: 1px; box-shadow: rgb(38, 170, 153) 0px 0px 0px 0.5px; border-radius: 2px;">
+                                                            <span class="truncate" style="color: rgb(38, 170, 153);">` + itemnameshop_location + `</span>
+                                                          </div>
                                                         </div>
                                                     </div>
                                                 </div>
