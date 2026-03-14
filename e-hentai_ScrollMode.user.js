@@ -1,8 +1,13 @@
 // ==UserScript==
 // @name               e-hentai Scroll Mode
 // @name:zh-TW         e-hentai 滾動模式
+// @name:zh-CN         e-hentai 滚动模式
+// @name:ja            e-hentai スクロールモード
 // @namespace          https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @description        Scroll to browsing e-hentai's art with virtual scrolling.
+// @description        Scroll to browsing e-hentai's art.
+// @description:zh-TW  在 e-hentai 滾動卷軸持續瀏覽
+// @description:zh-CN  在 e-hentai 滚动卷轴持续浏览
+// @description:ja     e-hentaiスクロールスクロールでブラウジングを続ける
 // @version            4.4.0
 // @match              http*://e-hentai.org/s/*
 // @match              http*://exhentai.org/s/*
