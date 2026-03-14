@@ -1,18 +1,9 @@
 // ==UserScript==
 // @name               e-hentai Scroll Mode
 // @name:zh-TW         e-hentai 滾動模式
-// @name:zh-CN         e-hentai 滚动模式
-// @name:ja            e-hentai スクロールモード
 // @namespace          https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @description        Scroll to browsing e-hentai's art.
-// @description:zh-TW  在 e-hentai 滾動卷軸持續瀏覽
-// @description:zh-CN  在 e-hentai 滚动卷轴持续浏览
-// @description:ja     e-hentaiスクロールスクロールでブラウジングを続ける
-// @copyright          2019, HrJasn (https://greasyfork.org/zh-TW/users/142344-jasn-hr)
-// @license            GPL3
-// @license            Copyright HrJasn
-// @version            3.0.5
-// @icon               https://www.google.com/s2/favicons?domain=e-hentai.org
+// @description        Scroll to browsing e-hentai's art with virtual scrolling.
+// @version            4.4.0
 // @match              http*://e-hentai.org/s/*
 // @match              http*://exhentai.org/s/*
 // @exclude            http*://www.e-hentai.org/*
@@ -20,213 +11,263 @@
 // ==/UserScript==
 
 (() => {
-    const scrollMode_DIV = document.body.appendChild(document.createElement("div"));
-    scrollMode_DIV.style = "z-index:999;position:fixed;cursor:pointer;left:0px;width:100%;height:0px;top:" + window.innerHeight + "px;-webkit-overflow-scrolling:touch;overflow-y:scroll;background-color:gray;transition:all 0.5s ease 0.5s;";
-    let ImgJsonArr = [];
+    // === UI 建立 ===
+    const scrollMode_DIV = document.createElement("div");
+    // 保留 overflow-anchor: none 阻止瀏覽器干擾
+    scrollMode_DIV.style = "z-index:9999; position:fixed; cursor:pointer; left:0px; width:100%; height:0px; top:100vh; overflow-y:scroll; overflow-x:hidden; overflow-anchor:none; background-color:#333; transition:top 0.4s ease; display:flex; flex-direction:column; align-items:center;";
+    document.body.appendChild(scrollMode_DIV);
 
-    let mainImage = document.querySelector('#img').parentNode;
-    let PrevBtn = document.querySelector('a[href *= "/s/"] > img[src *= "/p.png"]').parentNode;
-    let NextBtn = document.querySelector('a[href *= "/s/"] > img[src *= "/n.png"]').parentNode;
-    mainImage.querySelector('img').setAttribute("pageurl",window.location.href);
-    ImgJsonArr.push({
-        'pageurl' : window.location.href,
-        'mainImage' : mainImage,
-        'PrevBtn' : PrevBtn,
-        'NextBtn' : NextBtn
-    });
-    function LoadBeforeImageToJsonArr(cnImg){
-        fetch(cnImg.href).then(async (res)=>{
-            return [res.url, await res.text()];
-        }).then((res)=>{
-            const parser = new DOMParser();
-            const htmlDocument = parser.parseFromString(res[1], "text/html");
-            const mImg = htmlDocument.documentElement.querySelector('#img').parentNode;
-            const pImg = htmlDocument.documentElement.querySelector('a[href *= "/s/"] > img[src *= "/p.png"]').parentNode;
-            const nImg = htmlDocument.documentElement.querySelector('a[href *= "/s/"] > img[src *= "/n.png"]').parentNode;
-            mImg.querySelector('img').setAttribute("pageurl",res[0]);
-            ImgJsonArr.unshift({
-                'pageurl' : res[0],
-                'mainImage' : mImg,
-                'PrevBtn' : pImg,
-                'NextBtn' : nImg
-            });
-            //console.log('Update ImgJsonArr: ', ImgJsonArr);
-            if(pImg.href != cnImg.href){
-                LoadBeforeImageToJsonArr(pImg);
+    // === 資料層 ===
+    const pagesData = new Map(); 
+    let isScrollModeActive = false;
+    let currentPageNum = 1;
+
+    function extractPageInfo(doc = document, url = window.location.href) {
+        const pageMatch = url.match(/-(\d+)$/);
+        if (!pageMatch) return null;
+        
+        const pageNum = parseInt(pageMatch[1]);
+        const imgEl = doc.querySelector('#img');
+        const pImg = doc.querySelector('a[href*="/s/"] > img[src*="/p.png"]')?.parentNode?.href;
+        const nImg = doc.querySelector('a[href*="/s/"] > img[src*="/n.png"]')?.parentNode?.href;
+
+        if (imgEl) {
+            const data = {
+                pageNum: pageNum,
+                pageUrl: url,
+                imgUrl: imgEl.src,
+                prevUrl: pImg !== url ? pImg : null,
+                nextUrl: nImg !== url ? nImg : null
             };
-        });
-    };
-    LoadBeforeImageToJsonArr(PrevBtn);
-    function LoadAfterImageToJsonArr(cnImg){
-        fetch(cnImg.href).then(async (res)=>{
-            return [res.url, await res.text()];
-        }).then((res)=>{
-            const parser = new DOMParser();
-            const htmlDocument = parser.parseFromString(res[1], "text/html");
-            const mImg = htmlDocument.documentElement.querySelector('#img').parentNode;
-            const pImg = htmlDocument.documentElement.querySelector('a[href *= "/s/"] > img[src *= "/p.png"]').parentNode;
-            const nImg = htmlDocument.documentElement.querySelector('a[href *= "/s/"] > img[src *= "/n.png"]').parentNode;
-            mImg.querySelector('img').setAttribute("pageurl",res[0]);
-            ImgJsonArr.push({
-                'pageurl' : res[0],
-                'mainImage' : mImg,
-                'PrevBtn' : pImg,
-                'NextBtn' : nImg
+            if (!pagesData.has(pageNum)) {
+                pagesData.set(pageNum, data);
+            }
+            return data;
+        }
+        return null;
+    }
+
+    const initialData = extractPageInfo();
+    if (initialData) currentPageNum = initialData.pageNum;
+
+    // === 顯示層：核心鎖定邏輯 ===
+
+    // 【核心機制】保護當前畫面的視角，不管 DOM 怎麼變，鎖死當前圖片的相對位置
+    function preserveScrollPosition(action) {
+        if (!isScrollModeActive) {
+            action();
+            return;
+        }
+        
+        const activeWrapper = scrollMode_DIV.querySelector(`div[data-page="${currentPageNum}"]`);
+        let oldOffset = null;
+        
+        // 動作前：記錄當前圖片距離視窗頂部的精確像素
+        if (activeWrapper) {
+            oldOffset = activeWrapper.getBoundingClientRect().top;
+        }
+
+        action(); // 執行 DOM 更新 (插入圖片、改變高度等)
+
+        // 動作後：計算位移差並補償
+        if (activeWrapper && oldOffset !== null) {
+            const newOffset = activeWrapper.getBoundingClientRect().top;
+            const diff = newOffset - oldOffset;
+            if (diff !== 0) {
+                scrollMode_DIV.scrollTop += diff;
+            }
+        }
+    }
+
+    // 整合 DOM 更新與圖片渲染
+    function renderUpdates(skipPreserve = false) {
+        const updateLogic = () => {
+            const sortedPages = Array.from(pagesData.keys()).sort((a, b) => a - b);
+            
+            // 1. 建立外層容器
+            sortedPages.forEach(pageNum => {
+                let wrapper = scrollMode_DIV.querySelector(`div[data-page="${pageNum}"]`);
+                if (!wrapper) {
+                    wrapper = document.createElement('div');
+                    wrapper.dataset.page = pageNum;
+                    // 將 margin 換成 padding，這樣 getBoundingClientRect().height 才能完美包含間距
+                    wrapper.style = "width:100%; min-height:80vh; display:flex; justify-content:center; align-items:center; padding-bottom: 20px; box-sizing: border-box;";
+                    
+                    const existingWrappers = Array.from(scrollMode_DIV.children);
+                    const nextNode = existingWrappers.find(el => parseInt(el.dataset.page) > pageNum);
+                    
+                    if (nextNode) {
+                        scrollMode_DIV.insertBefore(wrapper, nextNode);
+                    } else {
+                        scrollMode_DIV.appendChild(wrapper);
+                    }
+                }
             });
-            //console.log('Update ImgJsonArr: ', ImgJsonArr);
-            if(nImg.href != cnImg.href){
-                LoadAfterImageToJsonArr(nImg);
-            };
-        });
-    };
-    LoadAfterImageToJsonArr(NextBtn);
-    function reSizeElmtFlwWidthIfScl(Elmt,scale = 0.75){
-        Elmt.style.maxWidth = "";
-        Elmt.style.maxHeight = "";
-        let Elmt_originalWidth = Elmt.offsetWidth;
-        let Elmt_originalHeight = Elmt.offsetHeight;
-        Elmt.setAttribute("originalWidth",Elmt_originalWidth);
-        Elmt.setAttribute("originalHeight",Elmt_originalHeight);
-        Elmt.style.width = "100%";
-        Elmt.style.height = (Elmt_originalHeight*Elmt.offsetWidth)/Elmt_originalWidth + "px";
-        if( (Elmt.offsetWidth*scale > Elmt_originalWidth) || (Elmt.offsetheight*scale > Elmt_originalHeight) ){
-            Elmt.style.width = Elmt_originalWidth + "px";
-            Elmt.style.height = Elmt_originalHeight + "px";
+
+            // 2. 處理內部圖片載入與卸載
+            const wrappers = Array.from(scrollMode_DIV.children);
+            wrappers.forEach(wrapper => {
+                const pageNum = parseInt(wrapper.dataset.page);
+                const isWithinRange = Math.abs(pageNum - currentPageNum) <= 5;
+                const imgEl = wrapper.querySelector('img');
+
+                if (isWithinRange) {
+                    if (!imgEl) {
+                        const data = pagesData.get(pageNum);
+                        if (!data) return;
+
+                        const newImg = document.createElement('img');
+                        newImg.src = data.imgUrl;
+                        newImg.style = "max-width:100%; height:auto; display:block;";
+                        
+                        // 圖片非同步載入完成時，高度會改變，所以也要包在保護機制內
+                        newImg.onload = () => {
+                            preserveScrollPosition(() => {
+                                wrapper.style.minHeight = 'auto';
+                                wrapper.style.height = 'auto';
+                            });
+                        }; 
+                        wrapper.appendChild(newImg);
+                    }
+                } else {
+                    if (imgEl) {
+                        // 鎖定精確高度，拔除圖片
+                        wrapper.style.height = wrapper.getBoundingClientRect().height + "px";
+                        wrapper.style.minHeight = wrapper.style.height;
+                        imgEl.remove();
+                    }
+                }
+            });
         };
-        return Elmt;
-    };
-    let lastScrollTop = 0;
-    const UpdatescrollMode_DIV = (evnt) => {
-        document.body.style.overflow = "hidden";
-        let cuImg = null;
-        let sMImgNl = scrollMode_DIV.querySelectorAll('img');
-        let sMImgArr = [...sMImgNl];
-        if(scrollMode_DIV.querySelector('img')){
-            cuImg = sMImgArr.find((img)=>{
-                return ( (document.body.offsetHeight > (img.y + img.offsetHeight)) && ((img.y + img.offsetHeight) > 0) )
-            });
+
+        if (skipPreserve) {
+            updateLogic();
         } else {
-            cuImg = ImgJsonArr.find((img)=>{
-                return ( img.pageurl.match(/\-([^\-]+)$/)[1] == location.href.match(/\-([^\-]+)$/)[1] )
-            });
-            let mainImage_clone = cuImg.mainImage.querySelector('img').cloneNode(true);
-            scrollMode_DIV.appendChild(mainImage_clone);
-            mainImage_clone = reSizeElmtFlwWidthIfScl(mainImage_clone);
-            cuImg = mainImage_clone;
-        };
-        if(cuImg){
-            const currentScrollTop = (cuImg.y + cuImg.offsetHeight) || scrollMode_DIV.scrollTop;
-            const IJAcuImg = ImgJsonArr.find((ij)=>{
-                return ( ij.pageurl.match(/\-([^\-]+)$/)[1] == cuImg.getAttribute("pageurl").match(/\-([^\-]+)$/)[1] );
-            });
-            if (currentScrollTop > (lastScrollTop + (cuImg.offsetHeight*0.5))) {
-                [...ImgJsonArr].forEach((ImgJson,ImgJsonIdx)=>{
-                    const IJACIdx = ImgJsonArr.indexOf(IJAcuImg);
-                    sMImgNl = scrollMode_DIV.querySelectorAll('img');
-                    sMImgArr = [...sMImgNl];
-                    if( ((IJACIdx-5) <= ImgJsonIdx) && (ImgJsonIdx < (IJACIdx+5)) ){
-                        let sMcuImg = null;
-                        sMcuImg = sMImgArr.find((sMImgNE)=>{
-                            return ( sMImgNE.getAttribute("pageurl").match(/\-([^\-]+)$/)[1] == ImgJson.pageurl.match(/\-([^\-]+)$/)[1] );
-                        });
-                        if( !(sMcuImg) ){
-                            let mainImage_clone = ImgJson.mainImage.querySelector('img').cloneNode(true);
-                            scrollMode_DIV.appendChild(mainImage_clone);
-                            mainImage_clone = reSizeElmtFlwWidthIfScl(mainImage_clone);
-                            sMcuImg = mainImage_clone;
-                        };
-                        if ( !(evnt) && (sMcuImg) && (sMcuImg.getAttribute("pageurl").match(/\-([^\-]+)$/)[1] == location.href.match(/\-([^\-]+)$/)[1]) ) {
-                            sMcuImg.scrollIntoView();
-                        };
-                    };
-                    if( ImgJsonIdx < (IJACIdx-5) ){
-                        sMImgNl.forEach((sMImgNE)=>{
-                            if( ImgJson.pageurl.match(/\-([^\-]+)$/)[1] == sMImgNE.getAttribute("pageurl").match(/\-([^\-]+)$/)[1] ){
-                                sMImgNE.remove();
-                            };
-                        });
-                    };
-                });
-                lastScrollTop = currentScrollTop;
-            } else if (currentScrollTop < (lastScrollTop - (cuImg.offsetHeight*0.5))) {
-                const ImgJsonArrRvsd = [...ImgJsonArr].reverse();
-                [...ImgJsonArrRvsd].forEach((ImgJson,ImgJsonIdx)=>{
-                    const IJACIdx = ImgJsonArrRvsd.indexOf(IJAcuImg);
-                    sMImgNl = scrollMode_DIV.querySelectorAll('img');
-                    sMImgArr = [...sMImgNl];
-                    if( ((IJACIdx+5) >= ImgJsonIdx) && (ImgJsonIdx > (IJACIdx-5)) ){
-                        let sMcuImg = null;
-                        sMcuImg = sMImgArr.find((sMImgNE)=>{
-                            return ( sMImgNE.getAttribute("pageurl").match(/\-([^\-]+)$/)[1] == ImgJson.pageurl.match(/\-([^\-]+)$/)[1] );
-                        });
-                        if( !(sMcuImg) ){
-                            let mainImage_clone = ImgJson.mainImage.querySelector('img').cloneNode(true);
-                            scrollMode_DIV.insertBefore(mainImage_clone,sMImgArr[0]);
-                            mainImage_clone = reSizeElmtFlwWidthIfScl(mainImage_clone);
-                            sMcuImg = mainImage_clone;
-                        };
-                        if ( !(evnt) && (sMcuImg) && (sMcuImg.getAttribute("pageurl").match(/\-([^\-]+)$/)[1] == location.href.match(/\-([^\-]+)$/)[1]) ) {
-                            sMcuImg.scrollIntoView();
-                        };
-                    };
-                    if( ImgJsonIdx <= (IJACIdx-5) ){
-                        sMImgNl.forEach((sMImgNE)=>{
-                            if( ImgJson.pageurl.match(/\-([^\-]+)$/)[1] == sMImgNE.getAttribute("pageurl").match(/\-([^\-]+)$/)[1] ){
-                                sMImgNE.remove();
-                            };
-                        });
-                    };
-                });
-                lastScrollTop = currentScrollTop;
-            };
-        };
-    };
-    const ShowscrollMode_DIV = () => {
-        let cuImg = null;
-        let currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        if ( (currentScrollTop >= lastScrollTop) && (currentScrollTop + window.innerHeight >= document.body.offsetHeight*0.99) ) {
-            document.body.style.overflow="hidden";
-            scrollMode_DIV.style.height = "100%";
-            scrollMode_DIV.style.top = '0px';
-            scrollMode_DIV.addEventListener("wheel",UpdatescrollMode_DIV,false);
-            scrollMode_DIV.addEventListener("scroll",UpdatescrollMode_DIV,false);
-            scrollMode_DIV.addEventListener("keydown",UpdatescrollMode_DIV,false);
-            document.removeEventListener("wheel",ShowscrollMode_DIV,false);
-            document.removeEventListener("scroll",ShowscrollMode_DIV,false);
-            document.removeEventListener("keydown",ShowscrollMode_DIV,false);
-            scrollMode_DIV.focus();
-            UpdatescrollMode_DIV();
-        };
-        lastScrollTop = currentScrollTop;
-    };
-    document.addEventListener("wheel",ShowscrollMode_DIV,false);
-    document.addEventListener("scroll",ShowscrollMode_DIV,false);
-    document.addEventListener("keydown",ShowscrollMode_DIV,false);
-    const HidescrollMode_DIV = () => {
-        scrollMode_DIV.style.height = '0px';
-        scrollMode_DIV.style.top = window.innerHeight + 'px';
-        document.body.style.overflow = "scroll";
-        scrollMode_DIV.removeEventListener("wheel",UpdatescrollMode_DIV,false);
-        scrollMode_DIV.removeEventListener("scroll",UpdatescrollMode_DIV,false);
-        scrollMode_DIV.removeEventListener("keydown",UpdatescrollMode_DIV,false);
-        document.body.focus();
-        document.body.scrollTo({
-            top: document.body.offsetHeight*0.8,
-            behavior: "smooth"
-        });
-        document.addEventListener("wheel",ShowscrollMode_DIV,false);
-        document.addEventListener("scroll",ShowscrollMode_DIV,false);
-        document.addEventListener("keydown",ShowscrollMode_DIV,false);
-        const sMImgNl = scrollMode_DIV.querySelectorAll('img');
-        const cuImg = [...sMImgNl].find((img)=>{
-            return ( (document.body.offsetHeight > (img.y + img.offsetHeight)) && ((img.y + img.offsetHeight) > 0) )
-        });
-        window.location.href = cuImg.getAttribute("pageurl");
-    };
-    scrollMode_DIV.addEventListener("click",HidescrollMode_DIV,false);
-    window.addEventListener('resize', ()=>{
-        scrollMode_DIV.querySelectorAll('img').forEach((img)=>{
-            reSizeElmtFlwWidthIfScl(img);
-        });
-    });
+            preserveScrollPosition(updateLogic);
+        }
+    }
+
+    // === 捲動監聽器 ===
+    function handleScroll() {
+        if (!isScrollModeActive) return;
+
+        const viewportCenter = window.innerHeight / 2;
+        const wrappers = Array.from(scrollMode_DIV.children);
+        let closestPage = currentPageNum;
+        let minDistance = Infinity;
+
+        for (let wrapper of wrappers) {
+            const rect = wrapper.getBoundingClientRect();
+            
+            // 優先判定：涵蓋畫面正中央的，絕對是當前觀看的圖片
+            if (rect.top <= viewportCenter && rect.bottom >= viewportCenter) {
+                closestPage = parseInt(wrapper.dataset.page);
+                break;
+            }
+            
+            // 備用判定
+            const elementCenter = rect.top + (rect.height / 2);
+            const distance = Math.abs(elementCenter - viewportCenter);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestPage = parseInt(wrapper.dataset.page);
+            }
+        }
+
+        if (closestPage !== currentPageNum) {
+            currentPageNum = closestPage;
+            const currentData = pagesData.get(currentPageNum);
+            if (currentData && window.location.href !== currentData.pageUrl) {
+                window.history.replaceState(null, "", currentData.pageUrl);
+            }
+            renderUpdates();
+        }
+    }
+
+    // === 背景非同步讀取邏輯 ===
+    async function fetchPage(url, direction) {
+        if (!url || !isScrollModeActive) return;
+        
+        const targetPageMatch = url.match(/-(\d+)$/);
+        if (!targetPageMatch) return;
+        const targetPageNum = parseInt(targetPageMatch[1]);
+
+        if (pagesData.has(targetPageNum)) {
+            const nextTarget = direction === 'next' ? pagesData.get(targetPageNum).nextUrl : pagesData.get(targetPageNum).prevUrl;
+            if (nextTarget) fetchPage(nextTarget, direction);
+            return;
+        }
+
+        try {
+            const res = await fetch(url);
+            const html = await res.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+            
+            const newData = extractPageInfo(doc, res.url);
+            if (newData) {
+                renderUpdates();
+                setTimeout(() => {
+                    const nextTarget = direction === 'next' ? newData.nextUrl : newData.prevUrl;
+                    if (nextTarget) fetchPage(nextTarget, direction);
+                }, 300);
+            }
+        } catch (err) {
+            console.error("Fetch error:", err);
+        }
+    }
+
+    // === 模式切換邏輯 ===
+    function activateScrollMode(e) {
+        const isContentShort = document.body.offsetHeight <= window.innerHeight + 50;
+        const isScrolledToBottom = (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 50;
+        
+        if (e.deltaY > 0 && (isContentShort || isScrolledToBottom)) {
+            if (isScrollModeActive) return;
+            isScrollModeActive = true;
+            
+            document.body.style.overflow = "hidden";
+            scrollMode_DIV.style.height = "100vh";
+            scrollMode_DIV.style.top = "0px";
+            
+            // 首次進入不使用保護機制，因為我們要主動改變 scrollTop
+            renderUpdates(true);
+            
+            const currentWrapper = scrollMode_DIV.querySelector(`div[data-page="${currentPageNum}"]`);
+            if (currentWrapper) {
+                scrollMode_DIV.scrollTop = currentWrapper.offsetTop;
+            }
+            
+            scrollMode_DIV.addEventListener('scroll', handleScroll, { passive: true });
+            
+            if (initialData.nextUrl) fetchPage(initialData.nextUrl, 'next');
+            if (initialData.prevUrl) fetchPage(initialData.prevUrl, 'prev');
+        }
+    }
+
+    function deactivateScrollMode(e) {
+        if (!isScrollModeActive) return;
+
+        let targetPageNum = currentPageNum;
+        const clickedWrapper = e.target.closest('div[data-page]');
+        if (clickedWrapper) {
+            targetPageNum = parseInt(clickedWrapper.dataset.page);
+        }
+
+        const targetData = pagesData.get(targetPageNum);
+        
+        if (targetData && targetData.pageUrl) {
+            window.location.href = targetData.pageUrl;
+        } else {
+            isScrollModeActive = false;
+            scrollMode_DIV.style.height = "0px";
+            scrollMode_DIV.style.top = "100vh";
+            document.body.style.overflow = "auto";
+            scrollMode_DIV.removeEventListener('scroll', handleScroll);
+        }
+    }
+
+    window.addEventListener("wheel", activateScrollMode, { passive: true });
+    scrollMode_DIV.addEventListener("click", deactivateScrollMode);
+
 })();
