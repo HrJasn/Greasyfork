@@ -8,7 +8,7 @@
 // @description:zh-TW  在 e-hentai 滾動卷軸持續瀏覽
 // @description:zh-CN  在 e-hentai 滚动卷轴持续浏览
 // @description:ja     e-hentaiスクロールスクロールでブラウジングを続ける
-// @version            4.4.0
+// @version            4.4.1
 // @match              http*://e-hentai.org/s/*
 // @match              http*://exhentai.org/s/*
 // @exclude            http*://www.e-hentai.org/*
