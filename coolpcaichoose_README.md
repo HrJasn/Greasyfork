@@ -23,11 +23,11 @@
 * [Chrome / Edge / Brave 擴充功能商店](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)
 * [Firefox 附加元件](https://addons.mozilla.org/zh-TW/firefox/addon/tampermonkey/)
 
-### 步驟 2：新增腳本
-1. 點擊瀏覽器右上角的 Tampermonkey 圖示，選擇 **「新增腳本」**。
-2. 將編輯器內預設的程式碼全部刪除。
-3. 複製本專案的完整腳本程式碼，並貼上到編輯器中。
-4. 按下 `Ctrl + S` (或 `Cmd + S`) 儲存腳本。
+### 步驟 2：一鍵安裝腳本
+1. 點擊下方連結安裝腳本：
+   👉 **[點我安裝 / 更新原價屋 AI 建議估價清單腳本](https://github.com/HrJasn/Greasyfork/raw/refs/heads/main/coolpcaichoose.user.js)**
+2. 瀏覽器會自動開啟 Tampermonkey 的安裝頁面，點擊畫面上的 **「安裝 (Install)」** 或 **「更新 (Update)」** 即可完成。
+   *(💡 提示：透過此連結安裝後，未來腳本若有新版本，Tampermonkey 將會自動偵測並為您更新！)*
 
 ### 步驟 3：開始使用
 前往 [原價屋線上估價系統](https://www.coolpc.com.tw/evaluate.php)，你就會在右下角看到「🤖 AI配單」的懸浮圖示了！
