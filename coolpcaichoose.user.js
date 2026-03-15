@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         原價屋 AI 建議估價清單
-// @namespace    http://tampermonkey.net/
-// @version      2026-03-15.6
+// @namespace    https://greasyfork.org/zh-TW/users/142344-jasn-hr
+// @version      2026-03-15.7
 // @description  在原價屋估價頁面讓AI自動抓取當下選項配單。支援 Gemini/ChatGPT、視窗縮放、API密鑰管理與後續追問修改配單。
 // @author       HrJasn
 // @match        *://*.coolpc.com.tw/evaluate.php
