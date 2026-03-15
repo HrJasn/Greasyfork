@@ -44,7 +44,7 @@
    * *範例：「預算 3.5 萬，想順跑 2K 畫質的黑神話悟空，需要含正版 Windows 11，外觀想要黑色系。」*
 4. **送出分析**：點擊「⚡ 送出需求並分析」，等待約 10~20 秒，AI 就會自動幫你把所有零件填入網頁選單中！
 
-<video src="https://github.com/user-attachments/assets/53fd13be-7df1-407a-a6ff-391d0b5edb8a" controls="controls" style="max-width: 100%;">
+<video src="https://github.com/user-attachments/assets/f09ff970-41e5-4cbf-81ca-9ccc2b4b8810" controls="controls" style="max-width: 100%;">
   您的瀏覽器不支援 HTML5 影片標籤。
 </video>
 
