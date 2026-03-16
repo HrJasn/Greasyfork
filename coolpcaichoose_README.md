@@ -39,7 +39,7 @@
 1. **申請 API Key**：
    * **Google Gemini** (免費額度高，推薦)：前往 [Google AI Studio](https://aistudio.google.com/api-keys) 申請。
    * **OpenAI ChatGPT**：前往 [OpenAI Platform](https://platform.openai.com/api-keys) 申請。
-   目前的腳本設計會把所有現有選項傳送給AI分析，消耗權杖的量非常多，除非您知道自己在做什麼否則別先提供付費方式而導致付費模式。
+   * 目前的腳本設計會把所有現有選項傳送給AI分析，消耗權杖的量非常多，除非您知道自己在做什麼否則別先提供付費方式而導致付費模式。
 2. **輸入密鑰並載入模型**：在腳本介面貼上 API Key，點擊「🔄 驗證並載入模型列表」。
 3. **輸入需求**：在文字框內輸入你的組裝需求。
    * *範例：「預算 3.5 萬，想順跑 2K 畫質的黑神話悟空，需要含正版 Windows 11，外觀想要黑色系。」*
