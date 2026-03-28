@@ -1,8 +1,8 @@
 ﻿// ==UserScript==
 // @name         原價屋 AI 建議估價清單
 // @namespace    https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @version      2026-03-15.13
-// @description  在原價屋估價頁面讓AI自動抓取當下選項配單。新增預算防呆機制，遇不合理需求會醒目提示且不硬配單。
+// @version      2026-03-15.16
+// @description  在原價屋估價頁面讓AI自動抓取當下選項配單。支援跨分頁圖片拖曳、長按輸入框智慧貼上/選檔，以及自動載入模型功能。
 // @copyright    2026, HrJasn
 // @license      MIT
 // @author       HrJasn
@@ -14,6 +14,7 @@
 // @grant        GM_getValue
 // @connect      generativelanguage.googleapis.com
 // @connect      api.openai.com
+// @connect      *
 // ==/UserScript==
 
 (function() {
@@ -64,6 +65,8 @@
         padding: 15px;
         box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         box-sizing: border-box;
+        max-height: 90vh;
+        overflow-y: auto;
     `;
 
     const header = document.createElement('div');
@@ -177,12 +180,32 @@
     apiKeyInputWrapper.appendChild(clearKeyBtn);
     engineSection.content.appendChild(apiKeyInputWrapper);
 
+    // ★ 新增：自動載入模型選項
+    const autoLoadWrapper = document.createElement('label');
+    autoLoadWrapper.style.cssText = 'display: flex; align-items: center; font-size: 12px; color: #555; cursor: pointer; margin-top: 8px; font-weight: bold;';
+
+    const autoLoadCheckbox = document.createElement('input');
+    autoLoadCheckbox.type = 'checkbox';
+    autoLoadCheckbox.checked = GM_getValue('auto_load_model', true);
+    autoLoadCheckbox.style.cssText = 'margin: 0 6px 0 0; cursor: pointer;';
+
+    autoLoadCheckbox.addEventListener('change', (e) => {
+        GM_setValue('auto_load_model', e.target.checked);
+        if (e.target.checked && apiKeyInput.value.trim() !== '') {
+            triggerLoadModels();
+        }
+    });
+
+    autoLoadWrapper.appendChild(autoLoadCheckbox);
+    autoLoadWrapper.appendChild(document.createTextNode('有金鑰時自動連線驗證載入模型'));
+    engineSection.content.appendChild(autoLoadWrapper);
+
     // --- 區塊 2：模型連線與搜尋 ---
     const modelSection = createCollapsibleSection('🌐 模型連線與搜尋');
     guiWindow.appendChild(modelSection.wrapper);
 
     const loadModelsBtn = document.createElement('button');
-    loadModelsBtn.innerHTML = '🔄 驗證並載入模型列表';
+    loadModelsBtn.innerHTML = '🔄 手動驗證並載入模型列表';
     loadModelsBtn.style.cssText = `
         width: 100%; box-sizing: border-box; padding: 10px; margin-bottom: 8px;
         background: #555; color: white; border: none; border-radius: 4px;
@@ -201,7 +224,7 @@
     modelSearchWrapper.appendChild(modelSearchInput);
     modelSection.content.appendChild(modelSearchWrapper);
 
-    // --- 區塊 3：固定區域 (模型選擇、警告面板、對話與送出) ---
+    // --- 區塊 3：固定區域 (模型選擇、警告面板、輸入框與送出) ---
     const modelSelectWrapper = document.createElement('div');
     modelSelectWrapper.style.display = 'none';
     modelSelectWrapper.style.cssText = 'margin-bottom: 8px; padding-top: 5px;';
@@ -238,14 +261,213 @@
     modelSelectWrapper.appendChild(modelSelect);
     guiWindow.appendChild(modelSelectWrapper);
 
-    // ★ 新增：AI 警告訊息專用面板 (預設隱藏)
+    // 警告訊息專用面板
     const warningBox = document.createElement('div');
     warningBox.style.cssText = 'display: none; background-color: #fff0f0; border-left: 4px solid #d02718; color: #b71c1c; padding: 10px; margin-bottom: 10px; border-radius: 4px; font-size: 13px; font-weight: bold; line-height: 1.5; word-wrap: break-word;';
     guiWindow.appendChild(warningBox);
 
+    // ★ 整合拖曳、貼上、長按預覽的複合輸入區塊
+    let currentImageData = null;
+    let currentImageMimeType = null;
+
+    const inputWrapper = document.createElement('div');
+    inputWrapper.style.cssText = 'border: 1px solid #ccc; border-radius: 4px; padding: 8px; margin-bottom: 10px; background: #fff; transition: border-color 0.3s, background-color 0.3s; position: relative;';
+
     const promptInput = document.createElement('textarea');
-    promptInput.placeholder = '請輸入您的組裝需求或追問修改（例如：預算3萬內、想順跑2077... / 或者追問：幫我把目前的機殼換成白色的）';
-    promptInput.style.cssText = 'width: 100%; height: 85px; box-sizing: border-box; margin-bottom: 10px; padding: 8px; resize: none; border: 1px solid #ccc; border-radius: 4px; font-family: inherit;';
+    promptInput.placeholder = '請輸入需求\n(支援拖曳、Ctrl+V貼圖，或長按叫出檔案選項)';
+    promptInput.style.cssText = 'width: 100%; height: 70px; box-sizing: border-box; resize: none; border: none; outline: none; font-family: inherit; background: transparent; display: block; user-select: none;'; // user-select: none 幫助防長按原生選取干擾
+
+    // 隱藏的檔案上傳元素 (用於長按時叫出)
+    const hiddenFileInput = document.createElement('input');
+    hiddenFileInput.type = 'file';
+    hiddenFileInput.accept = 'image/*';
+    hiddenFileInput.style.display = 'none';
+
+    hiddenFileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            handleImageFile(e.target.files[0]);
+        }
+        hiddenFileInput.value = ''; // 重置
+    });
+    guiWindow.appendChild(hiddenFileInput);
+
+    // 圖片預覽區域
+    const previewArea = document.createElement('div');
+    previewArea.style.cssText = 'display: none; align-items: flex-end; gap: 10px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #eee;';
+
+    const imagePreview = document.createElement('img');
+    imagePreview.style.cssText = 'max-height: 80px; max-width: 100%; border-radius: 4px; border: 1px solid #ddd; object-fit: contain;';
+
+    const clearImageBtn = document.createElement('button');
+    clearImageBtn.innerText = '❌移除圖片';
+    clearImageBtn.title = '清除已附加的圖片';
+    clearImageBtn.style.cssText = 'padding: 4px 8px; background: #fff0f0; border: 1px solid #d02718; color: #d02718; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; flex-shrink: 0;';
+
+    previewArea.appendChild(imagePreview);
+    previewArea.appendChild(clearImageBtn);
+    inputWrapper.appendChild(promptInput);
+    inputWrapper.appendChild(previewArea);
+    guiWindow.appendChild(inputWrapper);
+
+    // --- 圖片處理共用函數 ---
+    function handleImageFile(file) {
+        if (!file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const base64Full = event.target.result;
+            currentImageMimeType = file.type;
+            currentImageData = base64Full.split(',')[1];
+            imagePreview.src = base64Full;
+            previewArea.style.display = 'flex';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function resetImage() {
+        currentImageData = null;
+        currentImageMimeType = null;
+        imagePreview.src = '';
+        previewArea.style.display = 'none';
+    }
+
+    clearImageBtn.addEventListener('click', resetImage);
+
+    // --- 監聽貼上事件 (Ctrl+V) ---
+    promptInput.addEventListener('paste', (e) => {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (let item of items) {
+            if (item.type.indexOf('image/') === 0) {
+                const file = item.getAsFile();
+                if (file) handleImageFile(file);
+            }
+        }
+    });
+
+    // --- ★ 新增：長按事件偵測 (滑鼠/觸控) ---
+    let pressTimer;
+    let isLongPress = false;
+
+    async function handleLongPress() {
+        isLongPress = true;
+        // 嘗試讀取剪貼簿
+        try {
+            if (navigator.clipboard && navigator.clipboard.read) {
+                const clipboardItems = await navigator.clipboard.read();
+                let imageFound = false;
+                for (const clipboardItem of clipboardItems) {
+                    for (const type of clipboardItem.types) {
+                        if (type.startsWith('image/')) {
+                            const blob = await clipboardItem.getType(type);
+                            const file = new File([blob], "pasted-image.png", { type: type });
+                            handleImageFile(file);
+                            imageFound = true;
+                            break;
+                        }
+                    }
+                    if (imageFound) break;
+                }
+                // 剪貼簿沒有圖片，則叫出選檔視窗
+                if (!imageFound) hiddenFileInput.click();
+            } else {
+                hiddenFileInput.click(); // 不支援讀取 API 直接彈出選檔
+            }
+        } catch (err) {
+            // 被瀏覽器擋下或沒權限時，退回叫出選檔視窗
+            console.warn('無法讀取剪貼簿，退回檔案選擇。', err);
+            hiddenFileInput.click();
+        }
+    }
+
+    const startPress = (e) => {
+        if (e.button && e.button !== 0) return; // 僅限左鍵或觸控
+        isLongPress = false;
+        pressTimer = setTimeout(() => {
+            handleLongPress();
+        }, 600); // 600毫秒判定為長按
+    };
+
+    const cancelPress = (e) => {
+        clearTimeout(pressTimer);
+        if (isLongPress && e.cancelable) e.preventDefault();
+    };
+
+    promptInput.addEventListener('mousedown', startPress);
+    promptInput.addEventListener('touchstart', startPress, { passive: true });
+    promptInput.addEventListener('mouseup', cancelPress);
+    promptInput.addEventListener('mouseleave', cancelPress);
+    promptInput.addEventListener('touchend', cancelPress);
+
+    // --- ★ 更新：跨分頁拖曳事件 (Drag & Drop) ---
+    inputWrapper.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        inputWrapper.style.backgroundColor = '#f0f8ff';
+        inputWrapper.style.borderColor = '#0066cc';
+    });
+
+    inputWrapper.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        inputWrapper.style.backgroundColor = '#fff';
+        inputWrapper.style.borderColor = '#ccc';
+    });
+
+    inputWrapper.addEventListener('drop', (e) => {
+        e.preventDefault();
+        inputWrapper.style.backgroundColor = '#fff';
+        inputWrapper.style.borderColor = '#ccc';
+
+        // 1. 本地檔案直接拖入
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const file = e.dataTransfer.files[0];
+            if (file.type.startsWith('image/')) {
+                handleImageFile(file);
+                return;
+            }
+        }
+
+        // 2. 從其他分頁/網站拖入的圖片 (網址或HTML)
+        let htmlData = e.dataTransfer.getData('text/html');
+        let uriData = e.dataTransfer.getData('text/uri-list');
+        let imgUrl = null;
+
+        if (htmlData) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlData, 'text/html');
+            const img = doc.querySelector('img');
+            if (img && img.src) imgUrl = img.src;
+        }
+        if (!imgUrl && uriData) imgUrl = uriData;
+
+        if (imgUrl) {
+            if (imgUrl.startsWith('data:image/')) {
+                // 如果是 Base64 網址直接轉換
+                fetch(imgUrl).then(res => res.blob()).then(blob => {
+                    handleImageFile(new File([blob], "dragged-image.png", { type: blob.type }));
+                });
+            } else if (imgUrl.startsWith('http')) {
+                // 使用 GM_xmlhttpRequest 繞過 CORS 抓取圖片
+                statusText.innerText = '狀態：正在下載拖曳的圖片...';
+                GM_xmlhttpRequest({
+                    method: 'GET',
+                    url: imgUrl,
+                    responseType: 'blob',
+                    onload: (res) => {
+                        if (res.status === 200 && res.response.type.startsWith('image/')) {
+                             handleImageFile(new File([res.response], "dragged-image.jpg", { type: res.response.type }));
+                             statusText.innerText = '狀態：圖片跨網域讀取成功！';
+                             statusText.style.color = 'green';
+                        } else {
+                             statusText.innerText = '錯誤：拖曳的圖片格式不支援或讀取失敗。';
+                             statusText.style.color = 'red';
+                        }
+                    },
+                    onerror: () => {
+                        statusText.innerText = '錯誤：無法跨網域讀取該圖片，請嘗試截圖後 Ctrl+V 貼上。';
+                        statusText.style.color = 'red';
+                    }
+                });
+            }
+        }
+    });
 
     const submitBtn = document.createElement('button');
     submitBtn.innerHTML = '⚡ 送出需求並分析';
@@ -261,7 +483,6 @@
     statusText.innerText = '狀態：請先輸入 API Key 並載入模型';
     statusText.style.cssText = 'margin: 10px 0 0 0; font-size: 12px; color: #555; word-break: break-all; line-height: 1.4;';
 
-    guiWindow.appendChild(promptInput);
     guiWindow.appendChild(submitBtn);
     guiWindow.appendChild(statusText);
 
@@ -286,7 +507,7 @@
 
     toggleView();
 
-    function updateProviderUI() {
+    function updateProviderUI(isFirstLoad = false) {
         const provider = providerSelect.value;
         GM_setValue('ai_provider', provider);
 
@@ -304,15 +525,21 @@
         modelSelect.innerHTML = '';
         modelSelectWrapper.style.display = 'none';
         modelSearchWrapper.style.display = 'none';
-        warningBox.style.display = 'none'; // 切換引擎時重置警告面板
+        warningBox.style.display = 'none';
         engineSection.expand();
         modelSection.expand();
 
-        statusText.innerText = apiKeyInput.value.trim() !== '' ? '狀態：已讀取儲存的 API Key，請點擊上方按鈕載入模型。' : '狀態：請先輸入 API Key 並載入模型';
+        const hasKey = apiKeyInput.value.trim() !== '';
+        statusText.innerText = hasKey ? '狀態：已讀取儲存的 API Key，請點擊上方按鈕載入模型。' : '狀態：請先輸入 API Key 並載入模型';
         statusText.style.color = '#555';
+
+        // ★ 若開啟自動載入且有金鑰，則自動觸發
+        if (hasKey && autoLoadCheckbox.checked && isFirstLoad) {
+            setTimeout(triggerLoadModels, 500); // 給予稍微緩衝時間
+        }
     }
 
-    providerSelect.addEventListener('change', updateProviderUI);
+    providerSelect.addEventListener('change', () => updateProviderUI(true));
 
     clearKeyBtn.addEventListener('click', () => {
         const provider = providerSelect.value;
@@ -324,7 +551,8 @@
         statusText.style.color = '#d02718';
     });
 
-    updateProviderUI();
+    // 初始載入
+    updateProviderUI(true);
 
     // --- 5. 處理模型載入、動態評分與狀態標記 ---
     function renderModels(keyword = '') {
@@ -376,7 +604,8 @@
         return availableModels[0].id;
     }
 
-    loadModelsBtn.addEventListener('click', () => {
+    // ★ 獨立出的載入模型函數
+    function triggerLoadModels() {
         const provider = providerSelect.value; const apiKey = apiKeyInput.value.trim();
         if (!apiKey) { statusText.innerText = '錯誤：請先輸入 API Key！'; statusText.style.color = 'red'; return; }
 
@@ -420,8 +649,9 @@
                 onerror: () => { loadModelsBtn.disabled = false; statusText.innerText = '錯誤：API 請求失敗，請檢查網路。'; statusText.style.color = 'red'; }
             });
         }
-    });
+    }
 
+    loadModelsBtn.addEventListener('click', triggerLoadModels);
     modelSearchInput.addEventListener('input', (e) => renderModels(e.target.value));
 
     // --- 6. 監聽送出事件與全局錯誤容忍重試邏輯 ---
@@ -433,11 +663,11 @@
 
         if (!apiKey) { statusText.innerText = '錯誤：尚未填寫 API Key！'; statusText.style.color = 'red'; return; }
         if (modelSelectWrapper.style.display === 'none' || !currentTargetModel) { statusText.innerText = '錯誤：請先載入並選擇一個模型！'; statusText.style.color = 'red'; return; }
-        if (!prompt) { statusText.innerText = '錯誤：請輸入組裝需求！'; statusText.style.color = 'red'; return; }
+        if (!prompt && !currentImageData) { statusText.innerText = '錯誤：請輸入組裝需求或附加圖片！'; statusText.style.color = 'red'; return; }
 
         submitBtn.disabled = true;
         submitBtn.style.opacity = '0.5';
-        warningBox.style.display = 'none'; // 每次送出前隱藏警告面板
+        warningBox.style.display = 'none';
 
         try {
             const categories = {};
@@ -465,10 +695,10 @@
                 }
             });
 
-            // ★ 更新系統提示詞：加入預算與合理性評估任務
             const systemInstruction = `你是一個專業的電腦組裝人員。
 我將會提供「使用者的需求」、「目前網頁上已選擇的零件(如果有)」以及「原價屋當下的所有零件清單 JSON」。
-請依據使用者預算及用途，在清單中挑選最適合的電腦組合。
+若使用者有附上圖片，請一併參考圖片內容（例如：舊電腦規格截圖、想找的特定硬體或機殼外觀等）來進行評估與配單。
+請依據使用者預算、用途及提供的圖片，在清單中挑選最適合的電腦組合。
 
 【極重要：預算與需求合理性評估】：
 如果使用者的預算明顯太低，或者需求在現實中完全無法達成（例如：5000元要組能順跑3A大作的新機），請**不要**勉強配單。
@@ -495,7 +725,7 @@
 }
 只需回傳有選到的分類即可。`;
 
-            const userContentText = `【使用者需求】\n${prompt}\n\n【目前已選擇零件】\n${Object.keys(currentSelections).length > 0 ? JSON.stringify(currentSelections) : '尚未選擇'}\n\n【所有零件清單】\n${JSON.stringify(categories)}`;
+            const userContentText = `【使用者需求】\n${prompt || '請參考附圖給予配單建議'}\n\n【目前已選擇零件】\n${Object.keys(currentSelections).length > 0 ? JSON.stringify(currentSelections) : '尚未選擇'}\n\n【所有零件清單】\n${JSON.stringify(categories)}`;
 
             function sendApiRequest(targetModelId) {
                 const modelDisplayName = targetModelId.replace('models/', '');
@@ -536,14 +766,13 @@
                         const textResult = parserCallback(res);
                         const buildJson = JSON.parse(textResult);
 
-                        // ★ 新增：檢查是否觸發了防呆機制 (AI_WARNING)
                         if (buildJson.AI_WARNING) {
                             warningBox.innerHTML = `🛑 <b>AI 評估無法達成需求：</b><br>${buildJson.AI_WARNING.replace(/\n/g, '<br>')}`;
                             warningBox.style.display = 'block';
                             statusText.innerText = '狀態：需求無法達成，已終止配單。';
                             statusText.style.color = '#d02718';
                             submitBtn.disabled = false; submitBtn.style.opacity = '1';
-                            return; // 終止流程，不執行後續的選單勾選
+                            return;
                         }
 
                         statusText.innerText = '狀態：配單完成！正在自動勾選...';
@@ -561,7 +790,7 @@
                         statusText.innerText = `狀態：已成功自動填寫 ${selectedCount} 項組件！`;
                         statusText.style.color = 'green';
                         promptInput.value = '';
-                        promptInput.placeholder = '可繼續輸入追問（例如：預算爆了，幫我把顯卡降級...）';
+                        resetImage();
                         submitBtn.disabled = false; submitBtn.style.opacity = '1';
 
                     } catch (e) {
@@ -576,15 +805,46 @@
                 };
 
                 if (provider === 'gemini') {
+                    const geminiParts = [{ text: userContentText }];
+                    if (currentImageData) {
+                        geminiParts.push({
+                            inlineData: {
+                                mimeType: currentImageMimeType,
+                                data: currentImageData
+                            }
+                        });
+                    }
+
                     GM_xmlhttpRequest({
                         method: 'POST', url: `https://generativelanguage.googleapis.com/v1beta/${targetModelId}:generateContent?key=${apiKey}`, headers: { 'Content-Type': 'application/json' },
-                        data: JSON.stringify({ contents: [{ parts: [{ text: userContentText }] }], systemInstruction: { parts: [{ text: systemInstruction }] }, generationConfig: { temperature: 0.2, response_mime_type: "application/json" } }),
+                        data: JSON.stringify({
+                            contents: [{ parts: geminiParts }],
+                            systemInstruction: { parts: [{ text: systemInstruction }] },
+                            generationConfig: { temperature: 0.2, response_mime_type: "application/json" }
+                        }),
                         onload: (res) => handleApiResponse(res.responseText, data => data.candidates[0].content.parts[0].text), onerror: errorHandler
                     });
+
                 } else if (provider === 'openai') {
+                    let openaiContent = [];
+                    if (currentImageData) {
+                        openaiContent.push({ type: "text", text: userContentText });
+                        openaiContent.push({
+                            type: "image_url",
+                            image_url: { url: `data:${currentImageMimeType};base64,${currentImageData}` }
+                        });
+                    } else {
+                        openaiContent = userContentText;
+                    }
+
                     GM_xmlhttpRequest({
                         method: 'POST', url: 'https://api.openai.com/v1/chat/completions', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                        data: JSON.stringify({ model: targetModelId, messages: [{ role: "system", content: systemInstruction }, { role: "user", content: userContentText }], response_format: { type: "json_object" }, temperature: 0.2 }),
+                        data: JSON.stringify({
+                            model: targetModelId,
+                            messages: [{ role: "system", content: systemInstruction }, { role: "user", content: openaiContent }],
+                            response_format: { type: "json_object" },
+                            temperature: 0.2
+                        }),
                         onload: (res) => handleApiResponse(res.responseText, data => data.choices[0].message.content), onerror: errorHandler
                     });
                 }
