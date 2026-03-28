@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         原價屋 AI 建議估價清單
 // @namespace    https://greasyfork.org/zh-TW/users/142344-jasn-hr
-// @version      2026-03-15.16
+// @version      2026-03-28.1
 // @description  在原價屋估價頁面讓AI自動抓取當下選項配單。支援跨分頁圖片拖曳、長按輸入框智慧貼上/選檔，以及自動載入模型功能。
 // @copyright    2026, HrJasn
 // @license      MIT
